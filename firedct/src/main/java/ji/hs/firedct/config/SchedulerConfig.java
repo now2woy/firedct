@@ -23,7 +23,7 @@ public class SchedulerConfig {
 	}
 	
 	
-	@Scheduled(cron = "1/10 * * * * *")
+	@Scheduled(cron = "0 */5 * * * *")
 	public void tmpDt() {
 		itmTrdService.tmpDt();
 	}
