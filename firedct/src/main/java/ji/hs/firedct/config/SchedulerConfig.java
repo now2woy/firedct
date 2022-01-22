@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import ji.hs.firedct.itm.svc.ItmService;
+import ji.hs.firedct.itmtrd.svc.ItmTrdService;
 
 @Configuration
 @EnableScheduling
@@ -13,8 +14,17 @@ public class SchedulerConfig {
 	@Autowired
 	private ItmService itmService;
 	
+	@Autowired
+	private ItmTrdService itmTrdService;
+	
 	@Scheduled(cron = "0 20 * * * *")
 	public void itmCrawling() {
 		itmService.itmCrawling();
+	}
+	
+	
+	@Scheduled(cron = "1/10 * * * * *")
+	public void tmpDt() {
+		itmTrdService.tmpDt();
 	}
 }

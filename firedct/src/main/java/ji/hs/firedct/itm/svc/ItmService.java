@@ -39,7 +39,7 @@ public class ItmService {
 		mktLst.stream().forEach(val -> {
 			Document doc;
 			try {
-				log.info("{} ¼öÁý ½ÃÀÛ", val);
+				log.info("{} ìˆ˜ì§‘ ì‹œìž‘", val);
 				
 				doc = Jsoup.connect(URL + val).get();
 				
@@ -64,7 +64,7 @@ public class ItmService {
 					itmLst.add(itm);
 				});
 				
-				log.info("{} ¼öÁý Á¾·á", val);
+				log.info("{} ìˆ˜ì§‘ ì¢…ë£Œ", val);
 				
 			} catch (IOException e) {
 				log.error("", e);
@@ -73,6 +73,6 @@ public class ItmService {
 		
 		itmRepo.saveAllAndFlush(itmLst);
 		
-		log.info("{}°Ç ITM Å×ÀÌºí µ¥ÀÌÅÍ Ã³¸® Á¾·á", itmLst.size());
+		log.info("{}ê±´ ITM ì²˜ë¦¬ ì™„ë£Œ", itmLst.size());
 	}
 }
