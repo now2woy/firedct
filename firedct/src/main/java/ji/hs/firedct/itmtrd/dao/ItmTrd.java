@@ -31,8 +31,9 @@ public class ItmTrd implements Serializable {
 	private String itmCd;
 	
 	@Id
-	@Column(name = "DT", nullable = false, length = 8)
-	private String dt;
+	@Column(name = "DT", nullable = false)
+	@Temporal(TemporalType.DATE)
+	private Date dt;
 	
 	@Column(name = "ED_AMT", nullable = false, length = 20)
 	private BigDecimal edAmt;
@@ -51,8 +52,4 @@ public class ItmTrd implements Serializable {
 	
 	@Column(name = "ISU_STK_QTY", nullable = false, length = 20)
 	private BigDecimal isuStkQty;
-	
-	@Column(name = "TMP_DT", nullable = true)
-	@Temporal(TemporalType.DATE)
-	private Date tmpDt;
 }

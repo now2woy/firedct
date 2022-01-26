@@ -1,16 +1,13 @@
 package ji.hs.firedct.itmtrd.svc;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import ji.hs.firedct.itmtrd.dao.ItmTrd;
 import ji.hs.firedct.itmtrd.dao.ItmTrdRepository;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,22 +17,29 @@ public class ItmTrdService {
 	@Autowired
 	private ItmTrdRepository itmTrdRepo;
 	
-	public void tmpDt() {
+	public void itmTrdCrawling() {
+		final String URL = "http://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd?bld=dbms/MDC/STAT/standard/MDCSTAT01501&mktId={}&trdDd=";
+		
+		final List<String> mktLst = new ArrayList<>();
+		
+		mktLst.add("STK");
+		mktLst.add("KSQ");
+		
+		getCrawligDate();
+	}
+	
+	private List<String> getCrawligDate(){
+		List<String> dateLst = new ArrayList<>();
+		
+		Date currdate = new Date();
+		Date lastCrawlingdate = itmTrdRepo.findMaxTmpDtByItmCd("005930");
+		
 		final SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
-		final Pageable page = PageRequest.of(0, 5000, Sort.Direction.ASC, "itmCd");
 		
-		Page<ItmTrd> itmLst = itmTrdRepo.findByTmpDtIsNull(page);
+		log.info("{}", format.format(currdate));
+		log.info("{}", format.format(lastCrawlingdate));
+		log.info("{}", currdate.compareTo(lastCrawlingdate));
 		
-		itmLst.stream().forEach(itm -> {
-			try {
-				itm.setTmpDt(format.parse(itm.getDt()));
-			} catch (ParseException e) {
-				log.error("", e);
-			}
-		});
-		
-		itmTrdRepo.saveAllAndFlush(itmLst);
-		
-		log.info("처리완료");
+		return dateLst;
 	}
 }

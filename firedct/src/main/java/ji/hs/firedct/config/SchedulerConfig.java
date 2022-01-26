@@ -17,14 +17,14 @@ public class SchedulerConfig {
 	@Autowired
 	private ItmTrdService itmTrdService;
 	
-	@Scheduled(cron = "0 20 * * * *")
+	@Scheduled(cron = "0 0 20 * * *")
 	public void itmCrawling() {
 		itmService.itmCrawling();
 	}
 	
 	
-	@Scheduled(cron = "0 */5 * * * *")
+	@Scheduled(cron = "0 */1 * * * *")
 	public void tmpDt() {
-		itmTrdService.tmpDt();
+		itmTrdService.itmTrdCrawling();
 	}
 }
