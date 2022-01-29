@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import ji.hs.firedct.cd.dao.Cd;
+import ji.hs.firedct.cd.dao.CdRepository;
 import ji.hs.firedct.itm.dao.Itm;
 import ji.hs.firedct.itm.dao.ItmRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -22,26 +24,29 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class ItmService {
 	@Autowired
+	private CdRepository cdRepo;
+	
+	@Autowired
 	private ItmRepository itmRepo;
 	
+	/**
+	 * KRX 종목 기본 정보 수집
+	 */
 	public void itmCrawling() {
 		final String URL = "http://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd?bld=dbms/MDC/STAT/standard/MDCSTAT01901&mktId=";
 		
-		final List<String> mktLst = new ArrayList<>();
+		final List<Cd> mktLst = cdRepo.findByCls("00001");
 		final List<Itm> itmLst = new ArrayList<>();
 		
 		final SimpleDateFormat format = new SimpleDateFormat("yyyy/MM/dd");
 		final ObjectMapper mapper = new ObjectMapper();
 		
-		mktLst.add("STK");
-		mktLst.add("KSQ");
-		
-		mktLst.stream().forEach(val -> {
+		mktLst.stream().forEach(mkt -> {
 			Document doc;
 			try {
-				log.info("{} 수집 시작", val);
+				log.info("{} 수집 시작", mkt);
 				
-				doc = Jsoup.connect(URL + val).get();
+				doc = Jsoup.connect(URL + mkt.getCd()).get();
 				
 				Map<String, Object> map = new HashMap<>();
 				map = mapper.readValue(doc.text(), mapper.getTypeFactory().constructMapLikeType(Map.class, String.class, Object.class));
@@ -54,7 +59,7 @@ public class ItmService {
 					try {
 						itm.setItmCd(json.get("ISU_SRT_CD"));
 						itm.setItmNm(json.get("ISU_NM"));
-						itm.setMkt("STK".equals(val) ? "00001" : "00002");
+						itm.setMkt(mkt.getCd());
 						itm.setPubDt(format.parse(json.get("LIST_DD")));
 						itm.setStdItmCd(json.get("ISU_CD"));
 					}catch (Exception e) {
@@ -64,7 +69,7 @@ public class ItmService {
 					itmLst.add(itm);
 				});
 				
-				log.info("{} 수집 종료", val);
+				log.info("{} 수집 종료", mkt);
 				
 			} catch (IOException e) {
 				log.error("", e);
