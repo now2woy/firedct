@@ -8,6 +8,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import ji.hs.firedct.itm.svc.ItmService;
 import ji.hs.firedct.itmtrd.svc.ItmTrdService;
 
+/**
+ * Schedule 설정
+ * @author now2woy
+ *
+ */
 @Configuration
 @EnableScheduling
 public class SchedulerConfig {
@@ -26,10 +31,18 @@ public class SchedulerConfig {
 	}
 	
 	/**
+	 * DART 종목코드 수집
+	 */
+	@Scheduled(cron = "0 0 0 1 * *")
+	public void dartItmCdCrawling() {
+		itmService.dartCoprCdParser();
+	}
+	
+	/**
 	 * (매일 20시 30분)KRX 종목 시세 정보 수집
 	 */
 	@Scheduled(cron = "0 30 20 * * *")
-	public void tmpDt() {
+	public void itmTrdCrawling() {
 		itmTrdService.itmTrdCrawling();
 	}
 }

@@ -10,6 +10,11 @@ import org.springframework.context.annotation.Configuration;
 import ji.hs.firedct.cd.dao.Cd;
 import ji.hs.firedct.cd.svc.CdService;
 
+/**
+ * Job 설정
+ * @author now2woy
+ *
+ */
 @Configuration
 @EnableBatchProcessing
 public class JobConfig {

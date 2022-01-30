@@ -11,6 +11,11 @@ import ji.hs.firedct.cd.dao.Cd;
 import ji.hs.firedct.cd.dao.CdPrimaryKey;
 import ji.hs.firedct.cd.dao.CdRepository;
 
+/**
+ * 코드 Service
+ * @author now2woy
+ *
+ */
 @Service
 public class CdService {
 	@Autowired

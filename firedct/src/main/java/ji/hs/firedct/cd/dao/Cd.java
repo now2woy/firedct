@@ -14,6 +14,11 @@ import org.hibernate.annotations.DynamicUpdate;
 
 import lombok.Data;
 
+/**
+ * 코드 Entity
+ * @author now2woy
+ *
+ */
 @Data
 @Entity
 @DynamicInsert
@@ -22,21 +27,36 @@ import lombok.Data;
 @IdClass(CdPrimaryKey.class)
 public class Cd implements Serializable {
 	private static final long serialVersionUID = 4833283522160960629L;
-
+	
+	/**
+	 * 분류코드
+	 */
 	@Id
 	@Column(name = "CLS", nullable = false, length = 5)
 	private String cls;
 	
+	/**
+	 * 분류코드명
+	 */
 	@Column(name = "CLS_NM", nullable = true)
 	private String clsNm;
 	
+	/**
+	 * 코드
+	 */
 	@Id
 	@Column(name = "CD", nullable = false, length = 5)
 	private String cd;
 	
+	/**
+	 * 코드명
+	 */
 	@Column(name = "CD_NM", nullable = true)
 	private String cdNm;
 	
+	/**
+	 * 사용여부
+	 */
 	@Column(name = "USE_YN", nullable = false, length = 1)
 	@ColumnDefault("'Y'")
 	private String useYn;

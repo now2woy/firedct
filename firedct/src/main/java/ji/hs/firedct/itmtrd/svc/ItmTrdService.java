@@ -18,10 +18,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ji.hs.firedct.cd.dao.Cd;
 import ji.hs.firedct.cd.dao.CdRepository;
+import ji.hs.firedct.co.Constant;
 import ji.hs.firedct.itmtrd.dao.ItmTrd;
 import ji.hs.firedct.itmtrd.dao.ItmTrdRepository;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * 종목 거래 Service
+ * @author now2woy
+ *
+ */
 @Slf4j
 @Service
 public class ItmTrdService {
@@ -32,27 +38,15 @@ public class ItmTrdService {
 	private ItmTrdRepository itmTrdRepo;
 	
 	/**
-	 * KRX 종목 시세 수집
+	 * KRX 일자별 종목 시세 수집
 	 */
 	public void itmTrdCrawling() {
-		final String URL = "http://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd?bld=dbms/MDC/STAT/standard/MDCSTAT01501&mktId={}&trdDd=";
-		
+		final String URL = Constant.KRX_JSON_URL + "?bld=dbms/MDC/STAT/standard/MDCSTAT01501&mktId={}&trdDd=";
 		final SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
-		
 		final ObjectMapper mapper = new ObjectMapper();
 		
-		final List<String> dateLst = new ArrayList<>();
+		final List<String> dateLst = findMaxDtByItmCd(format, "005930");
 		final List<Cd> mktLst = cdRepo.findByCls("00001");
-		
-		int currDate = Integer.parseInt(format.format(new Date()));
-		Date lastCrawlingdate = itmTrdRepo.findMaxDtByItmCd("005930");
-		
-		while(currDate > Integer.parseInt(format.format(lastCrawlingdate))) {
-			lastCrawlingdate = DateUtils.addDays(lastCrawlingdate, 1);
-			dateLst.add(format.format(lastCrawlingdate));
-			
-			log.info("{}", format.format(lastCrawlingdate));
-		}
 		
 		mktLst.stream().forEach(mkt -> {
 			log.info("{} 수집 시작", mkt);
@@ -103,5 +97,27 @@ public class ItmTrdService {
 			
 			log.info("{} 수집 종료", mkt);
 		});
+	}
+	
+	/**
+	 * 최종거래일자부터 현재일자까지 List
+	 * @param format
+	 * @param itmCd
+	 * @return
+	 */
+	private List<String> findMaxDtByItmCd(SimpleDateFormat format, String itmCd){
+		final List<String> dateLst = new ArrayList<>();
+		final int currDate = Integer.parseInt(format.format(new Date()));
+		
+		Date lastCrawlingdate = itmTrdRepo.findMaxDtByItmCd(itmCd);
+		
+		while(currDate > Integer.parseInt(format.format(lastCrawlingdate))) {
+			lastCrawlingdate = DateUtils.addDays(lastCrawlingdate, 1);
+			dateLst.add(format.format(lastCrawlingdate));
+			
+			log.info("{}", format.format(lastCrawlingdate));
+		}
+		
+		return dateLst;
 	}
 }
