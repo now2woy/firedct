@@ -1,7 +1,12 @@
 package ji.hs.firedct.itm.svc;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,6 +20,9 @@ import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
+import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -52,8 +60,6 @@ public class ItmService {
 	 * KRX 종목 기본 정보 수집
 	 */
 	public void itmCrawling() {
-		final String URL = Constant.KRX_JSON_URL + "?bld=dbms/MDC/STAT/standard/MDCSTAT01901&mktId=";
-		
 		final List<Cd> mktLst = cdRepo.findByCls("00001");
 		final List<Itm> itmLst = new ArrayList<>();
 		
@@ -61,11 +67,13 @@ public class ItmService {
 		final ObjectMapper mapper = new ObjectMapper();
 		
 		mktLst.stream().forEach(mkt -> {
-			Document doc;
 			try {
-				log.info("{} 수집 시작", mkt);
+				log.info("{} 수집 시작", mkt.getCd());
 				
-				doc = Jsoup.connect(URL + mkt.getCd()).get();
+				Document doc = Jsoup.connect(Constant.KRX_JSON_URL)
+								.data("bld", "dbms/MDC/STAT/standard/MDCSTAT01901")
+								.data("mktId", mkt.getCd())
+								.get();
 				
 				Map<String, Object> map = new HashMap<>();
 				map = mapper.readValue(doc.text(), mapper.getTypeFactory().constructMapLikeType(Map.class, String.class, Object.class));
@@ -88,7 +96,7 @@ public class ItmService {
 					itmLst.add(itm);
 				});
 				
-				log.info("{} 수집 종료", mkt);
+				log.info("{} 수집 종료", mkt.getCd());
 				
 			} catch (IOException e) {
 				log.error("", e);
@@ -100,19 +108,86 @@ public class ItmService {
 		log.info("{}건 ITM 처리 완료", itmLst.size());
 	}
 	
+	/**
+	 * Dart 종목코드 파일 다운로드
+	 */
 	public void dartCoprCdFileDownload() {
-		final String URL = "";
+		log.info("Dart 종목코드 파일 다운로드 시작");
+		InputStream is = null;
+		
+		try {
+			URL url = new URL(Constant.DART_CORP_CD_URL + "?crtfc_key=" + dartApiKey);
+			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("GET");
+			
+			is = conn.getInputStream();
+			
+			unzip(is, new File(Constant.ENV_DOWNLOAD_PATH), "UTF-8");
+			
+			dartCoprCdParser();
+			
+		}catch(Exception e) {
+			log.error("", e);
+		}finally {
+			IOUtils.closeQuietly(is);
+		}
+		log.info("Dart 종목코드 파일 다운로드 종료");
+	}
+	
+	/**
+	 * 압축을 푼다.
+	 * @param is
+	 * @param destDir
+	 * @param charsetName
+	 * @throws IOException
+	 */
+	private void unzip(InputStream is, File destDir, String charsetName) throws IOException {
+		ZipArchiveInputStream zis = null;
+		ZipArchiveEntry entry = null;
+		String name = null;
+		File target = null;
+		FileOutputStream fos = null;
+		
+		try {
+			zis = new ZipArchiveInputStream(is, charsetName, false);
+			
+			while ((entry = zis.getNextZipEntry()) != null){
+				name = entry.getName();
+				
+				target = new File (destDir, name);
+				
+				if(entry.isDirectory()){
+					target.mkdirs();
+				} else {
+					target.createNewFile();
+					
+					try {
+						fos = new FileOutputStream(target);
+						IOUtils.copy(zis, fos);
+					}catch(Exception e) {
+						log.error("", e);
+					}finally {
+						IOUtils.closeQuietly(fos);
+					}
+				}
+			}
+		}catch(Exception e) {
+			log.error("", e);
+		}finally {
+			IOUtils.closeQuietly(zis);
+			IOUtils.closeQuietly(fos);
+		}
 	}
 	
 	/**
 	 * Dart 종목코드 파일 수집
 	 */
-	public void dartCoprCdParser() {
+	private void dartCoprCdParser() {
 		log.info("Dart 종목코드 파일 수집 시작");
 		
 		try {
 			XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
-			XMLEventReader reader = xmlInputFactory.createXMLEventReader(new FileInputStream("/Downloads/CORPCODE.xml"));
+			XMLEventReader reader = xmlInputFactory.createXMLEventReader(new FileInputStream(Constant.ENV_DOWNLOAD_PATH + "/CORPCODE.xml"));
 			
 			List<Itm> itmLst = new ArrayList<>();
 			Itm itm = null;

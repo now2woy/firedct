@@ -23,7 +23,8 @@ public class SchedulerConfig {
 	private ItmTrdService itmTrdService;
 	
 	/**
-	 * (매일 20시 00분)KRX 종목 기본 정보 수집
+	 * 매일 20시 00분
+	 * KRX 종목 기본 정보 수집
 	 */
 	@Scheduled(cron = "0 0 20 * * *")
 	public void itmCrawling() {
@@ -31,15 +32,17 @@ public class SchedulerConfig {
 	}
 	
 	/**
+	 * 매월 1일
 	 * DART 종목코드 수집
 	 */
 	@Scheduled(cron = "0 0 0 1 * *")
 	public void dartItmCdCrawling() {
-		itmService.dartCoprCdParser();
+		itmService.dartCoprCdFileDownload();
 	}
 	
 	/**
-	 * (매일 20시 30분)KRX 종목 시세 정보 수집
+	 * 매일 20시 30분
+	 * KRX 종목 시세 정보 수집
 	 */
 	@Scheduled(cron = "0 30 20 * * *")
 	public void itmTrdCrawling() {

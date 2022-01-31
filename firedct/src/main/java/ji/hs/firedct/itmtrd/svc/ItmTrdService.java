@@ -41,7 +41,6 @@ public class ItmTrdService {
 	 * KRX 일자별 종목 시세 수집
 	 */
 	public void itmTrdCrawling() {
-		final String URL = Constant.KRX_JSON_URL + "?bld=dbms/MDC/STAT/standard/MDCSTAT01501&mktId={}&trdDd=";
 		final SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
 		final ObjectMapper mapper = new ObjectMapper();
 		
@@ -49,15 +48,19 @@ public class ItmTrdService {
 		final List<Cd> mktLst = cdRepo.findByCls("00001");
 		
 		mktLst.stream().forEach(mkt -> {
-			log.info("{} 수집 시작", mkt);
+			log.info("{} 수집 시작", mkt.getCd());
 			
 			dateLst.stream().forEach(date -> {
 				try {
 					final List<ItmTrd> itmLst = new ArrayList<>();
 					
-					log.info("{} {} 수집 시작", mkt, date);
+					log.info("{} {} 수집 시작", mkt.getCd(), date);
 					
-					Document doc = Jsoup.connect(URL.replace("{}",  mkt.getCd()) + date).get();
+					Document doc = Jsoup.connect(Constant.KRX_JSON_URL)
+									.data("bld", "dbms/MDC/STAT/standard/MDCSTAT01501")
+									.data("mktId", mkt.getCd())
+									.data("trdDd", date)
+									.get();
 					
 					Map<String, Object> map = new HashMap<>();
 					map = mapper.readValue(doc.text(), mapper.getTypeFactory().constructMapLikeType(Map.class, String.class, Object.class));
@@ -89,13 +92,13 @@ public class ItmTrdService {
 					
 					itmTrdRepo.saveAllAndFlush(itmLst);
 					
-					log.info("{} {} 수집 종료", mkt, date);
+					log.info("{} {} 수집 종료", mkt.getCd(), date);
 				}catch(Exception e) {
 					log.error("", e);
 				}
 			});
 			
-			log.info("{} 수집 종료", mkt);
+			log.info("{} 수집 종료", mkt.getCd());
 		});
 	}
 	

@@ -15,4 +15,9 @@ public class Constant {
 	 * DART 종목코드 파일 URL
 	 */
 	public static final String DART_CORP_CD_URL = "https://opendart.fss.or.kr/api/corpCode.xml";
+	
+	/**
+	 * 파일 다운로드 경로
+	 */
+	public static final String ENV_DOWNLOAD_PATH = "/Downloads";
 }
