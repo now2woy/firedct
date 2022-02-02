@@ -81,4 +81,28 @@ public class ItmTrd implements Serializable {
 	 */
 	@Column(name = "ISU_STK_QTY", nullable = false, length = 20)
 	private BigDecimal isuStkQty;
+	
+	/**
+	 * 초단기이동평균금액(5일이동평균금액)
+	 */
+	@Column(name = "VSTTM_MV_AVG_AMT", nullable = true, length = 20)
+	private BigDecimal vsttmMvAvgAmt;
+	
+	/**
+	 * 단기이동평균금액(20일이동평균금액)
+	 */
+	@Column(name = "STTM_MV_AVG_AMT", nullable = true, length = 20)
+	private BigDecimal sttmMvAvgAmt;
+	
+	/**
+	 * 중기이동평균금액(60일이동평균금액)
+	 */
+	@Column(name = "MDTM_MV_AVG_AMT", nullable = true, length = 20)
+	private BigDecimal mdtmMvAvgAmt;
+	
+	/**
+	 * 장기이동평균금액(120일이동평균금액)
+	 */
+	@Column(name = "LNTM_MV_AVG_AMT", nullable = true, length = 20)
+	private BigDecimal lntmMvAvgAmt;
 }

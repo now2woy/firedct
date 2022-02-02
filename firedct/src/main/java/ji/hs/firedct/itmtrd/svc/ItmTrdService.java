@@ -1,6 +1,7 @@
 package ji.hs.firedct.itmtrd.svc;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -12,6 +13,8 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -122,5 +125,107 @@ public class ItmTrdService {
 		}
 		
 		return dateLst;
+	}
+	
+	/**
+	 * 초단기 이동평균금액(5일 이동평균금액) 생성
+	 * @param pageSize
+	 */
+	public void createVsttmMvAvgAmt(int pageSize) {
+		log.info("5일 이동평균금액 {}건 생성 시작", pageSize);
+		
+		List<ItmTrd> itmTrdLst = itmTrdRepo.findByVsttmMvAvgAmtIsNull(PageRequest.of(0, pageSize, Sort.by("itmCd").ascending().and(Sort.by("dt").ascending())));
+		
+		if(!itmTrdLst.isEmpty()) {
+			itmTrdLst.stream().forEach(itm -> {
+				itm.setVsttmMvAvgAmt(createMvAvgAmt(itm, 5));
+			});
+			
+			itmTrdRepo.saveAllAndFlush(itmTrdLst);
+		}
+		
+		log.info("5일 이동평균금액 {}건 생성 종료", pageSize);
+	}
+	
+	/**
+	 * 단기 이동평균금액(20일 이동평균금액) 생성
+	 * @param pageSize
+	 */
+	public void createSttmMvAvgAmt(int pageSize) {
+		log.info("20일 이동평균금액 {}건 생성 시작", pageSize);
+		
+		List<ItmTrd> itmTrdLst = itmTrdRepo.findBySttmMvAvgAmtIsNull(PageRequest.of(0, pageSize, Sort.by("itmCd").ascending().and(Sort.by("dt").ascending())));
+		
+		if(!itmTrdLst.isEmpty()) {
+			itmTrdLst.stream().forEach(itm -> {
+				itm.setSttmMvAvgAmt(createMvAvgAmt(itm, 20));
+			});
+			
+			itmTrdRepo.saveAllAndFlush(itmTrdLst);
+		}
+		
+		log.info("20일 이동평균금액 {}건 생성 종료", pageSize);
+	}
+	
+	/**
+	 * 중기 이동평균금액(60일 이동평균금액) 생성
+	 * @param pageSize
+	 */
+	public void createMdtmMvAvgAmt(int pageSize) {
+		log.info("60일 이동평균금액 {}건 생성 시작", pageSize);
+		
+		List<ItmTrd> itmTrdLst = itmTrdRepo.findByMdtmMvAvgAmtIsNull(PageRequest.of(0, pageSize, Sort.by("itmCd").ascending().and(Sort.by("dt").ascending())));
+		
+		if(!itmTrdLst.isEmpty()) {
+			itmTrdLst.stream().forEach(itm -> {
+				itm.setMdtmMvAvgAmt(createMvAvgAmt(itm, 60));
+			});
+			
+			itmTrdRepo.saveAllAndFlush(itmTrdLst);
+		}
+		
+		log.info("60일 이동평균금액 {}건 생성 종료", pageSize);
+	}
+	
+	/**
+	 * 장기 이동평균금액(120일 이동평균금액) 생성
+	 * @param pageSize
+	 */
+	public void createLntmMvAvgAmt(int pageSize) {
+		log.info("120일 이동평균금액 {}건 생성 시작", pageSize);
+		
+		List<ItmTrd> itmTrdLst = itmTrdRepo.findByLntmMvAvgAmtIsNull(PageRequest.of(0, pageSize, Sort.by("itmCd").ascending().and(Sort.by("dt").ascending())));
+		
+		if(!itmTrdLst.isEmpty()) {
+			itmTrdLst.stream().forEach(itm -> {
+				itm.setLntmMvAvgAmt(createMvAvgAmt(itm, 120));
+			});
+			
+			itmTrdRepo.saveAllAndFlush(itmTrdLst);
+		}
+		
+		log.info("120일 이동평균금액 {}건 생성 종료", pageSize);
+	}
+	
+	/**
+	 * scale 만큼 평균을 구한다.
+	 * @param itmTrd
+	 * @param scale
+	 * @return
+	 */
+	private BigDecimal createMvAvgAmt(ItmTrd itmTrd, int scale) {
+		BigDecimal mvAvgAmt = BigDecimal.ZERO;
+		
+		List<ItmTrd> itmTrdLst =  itmTrdRepo.findByItmCdAndDtLessThanEqualOrderByDtDesc(itmTrd.getItmCd(), itmTrd.getDt(), PageRequest.of(0, scale));
+		
+		if(itmTrdLst.size() == scale) {
+			for(int i = 0; i < scale; i++) {
+				mvAvgAmt = mvAvgAmt.add(itmTrdLst.get(i).getEdAmt());
+			}
+			
+			mvAvgAmt = mvAvgAmt.divide(new BigDecimal(scale), 0, RoundingMode.HALF_EVEN);
+		}
+		
+		return mvAvgAmt;
 	}
 }

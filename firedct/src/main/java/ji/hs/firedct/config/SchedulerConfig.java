@@ -27,25 +27,32 @@ public class SchedulerConfig {
 	 * KRX 종목 기본 정보 수집
 	 */
 	@Scheduled(cron = "0 0 20 * * *")
-	public void itmCrawling() {
+	public void crawling() {
+		// KRX 종목 기본 정보 수집
 		itmService.itmCrawling();
-	}
-	
-	/**
-	 * 매월 1일
-	 * DART 종목코드 수집
-	 */
-	@Scheduled(cron = "0 0 0 1 * *")
-	public void dartItmCdCrawling() {
+		
+		// DART 종목코드 수집
 		itmService.dartCoprCdFileDownload();
+		
+		// KRX 종목 시세 정보 수집
+		itmTrdService.itmTrdCrawling();
 	}
 	
 	/**
-	 * 매일 20시 30분
-	 * KRX 종목 시세 정보 수집
+	 * 테스트용 스케쥴
 	 */
-	@Scheduled(cron = "0 30 20 * * *")
-	public void itmTrdCrawling() {
-		itmTrdService.itmTrdCrawling();
+	@Scheduled(cron = "0 */1 * * * *")
+	public void test() {
+		// 5일 이동 평균 금액 생성
+		itmTrdService.createVsttmMvAvgAmt(1000);
+		
+		// 20일 이동 평균 금액 생성
+		itmTrdService.createSttmMvAvgAmt(1000);
+		
+		// 60일 이동 평균 금액 생성
+		itmTrdService.createMdtmMvAvgAmt(1000);
+		
+		// 120일 이동 평균 금액 생성
+		itmTrdService.createLntmMvAvgAmt(1000);
 	}
 }
