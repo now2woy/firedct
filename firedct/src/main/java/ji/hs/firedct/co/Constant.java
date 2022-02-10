@@ -17,6 +17,11 @@ public class Constant {
 	public static final String DART_CORP_CD_URL = "https://opendart.fss.or.kr/api/corpCode.xml";
 	
 	/**
+	 * DART 종목 / 년도 / 분기 재무제표 URL
+	 */
+	public static final String DART_FINC_STS_URL = "https://opendart.fss.or.kr/api/fnlttSinglAcntAll.json";
+	
+	/**
 	 * 파일 다운로드 경로
 	 */
 	public static final String ENV_DOWNLOAD_PATH = "/Downloads";
