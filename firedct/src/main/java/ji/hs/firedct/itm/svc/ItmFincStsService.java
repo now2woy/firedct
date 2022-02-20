@@ -1,4 +1,4 @@
-package ji.hs.firedct.itmfincsts.svc;
+package ji.hs.firedct.itm.svc;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -18,9 +18,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ji.hs.firedct.co.Constant;
 import ji.hs.firedct.itm.dao.Itm;
+import ji.hs.firedct.itm.dao.ItmFincSts;
+import ji.hs.firedct.itm.dao.ItmFincStsRepository;
 import ji.hs.firedct.itm.dao.ItmRepository;
-import ji.hs.firedct.itmfincsts.dao.ItmFincSts;
-import ji.hs.firedct.itmfincsts.dao.ItmFincStsRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -70,17 +70,72 @@ public class ItmFincStsService {
 					itmFincSts.setQt(qt);
 					
 					blockLst.stream().forEach(block -> {
-						if("ifrs-full_Revenue".equals(block.get("account_id"))) {
+						// 영업수익(매출액과 같다)
+						if("ifrs-full_GrossProfit".equals(block.get("account_id"))) {
 							if(StringUtils.isNotEmpty(block.get("thstrm_amount"))) {
 								itmFincSts.setSalAmt(new BigDecimal(block.get("thstrm_amount")));
 							}
+							
+						// 매출액(영업수익과 같다)
+						}else if("ifrs-full_Revenue".equals(block.get("account_id"))) {
+							if(StringUtils.isNotEmpty(block.get("thstrm_amount"))) {
+								itmFincSts.setSalAmt(new BigDecimal(block.get("thstrm_amount")));
+							}
+							
+						// 영업이익
 						}else if("dart_OperatingIncomeLoss".equals(block.get("account_id"))) {
 							if(StringUtils.isNotEmpty(block.get("thstrm_amount"))) {
 								itmFincSts.setOprIncmAmt(new BigDecimal(block.get("thstrm_amount")));
 							}
+							
+						// 당기순이익
 						}else if("ifrs-full_ProfitLoss".equals(block.get("account_id"))) {
-							if(StringUtils.isNotEmpty(block.get("thstrm_amount"))) {
-								itmFincSts.setTsNetIncmAmt(new BigDecimal(block.get("thstrm_amount")));
+							// 당기순이익의 경우 여러 태그가 있는데 이중 두가지
+							if("연결재무제표 [member]".equals(block.get("account_detail"))
+							|| "자본 [member]|이익잉여금(결손금)".equals(block.get("account_detail"))
+							|| "-".equals(block.get("account_detail"))){
+								if(StringUtils.isNotEmpty(block.get("thstrm_amount"))) {
+									itmFincSts.setTsNetIncmAmt(new BigDecimal(block.get("thstrm_amount")));
+								}
+							}
+							
+						// 표준계정코드가 아니더라도 필요한 자료일 수 있다
+						}else if("-표준계정코드 미사용-".equals(block.get("account_id"))) {
+							// 영업수익(매출액과 같다)
+							if("영업수익".equals(block.get("account_nm"))){
+								if(StringUtils.isNotEmpty(block.get("thstrm_amount"))) {
+									itmFincSts.setSalAmt(new BigDecimal(block.get("thstrm_amount")));
+								}
+								
+							// 매출액(영업수익과 같다)
+							}else if("매출액".equals(block.get("account_nm"))) {
+								if(StringUtils.isNotEmpty(block.get("thstrm_amount"))) {
+									itmFincSts.setSalAmt(new BigDecimal(block.get("thstrm_amount")));
+								}
+								
+							// 영업이익
+							}else if("영업이익".equals(block.get("account_nm"))) {
+								if(StringUtils.isNotEmpty(block.get("thstrm_amount"))) {
+									itmFincSts.setOprIncmAmt(new BigDecimal(block.get("thstrm_amount")));
+								}
+								
+							// 당기순이익
+							}else if("당기순이익".equals(block.get("account_nm"))
+								  || "당기순이익.".equals(block.get("account_nm"))
+								  || "분기순이익".equals(block.get("account_nm"))
+								  || "연결당기순이익".equals(block.get("account_nm"))
+								  || "연결분기순이익".equals(block.get("account_nm"))
+								  || "당기순이익(손실)".equals(block.get("account_nm"))
+								  || "1. 당기순이익(손실)".equals(block.get("account_nm"))
+								  || "연결당기순이익(손실)".equals(block.get("account_nm"))
+								  || "분기연결순이익(손실)".equals(block.get("account_nm"))) {
+								// 당기순이익의 경우 여러 태그가 있는데 이중 두가지
+								if("연결재무제표 [member]".equals(block.get("account_detail"))
+								|| "-".equals(block.get("account_detail"))){
+									if(StringUtils.isNotEmpty(block.get("thstrm_amount"))) {
+										itmFincSts.setTsNetIncmAmt(new BigDecimal(block.get("thstrm_amount")));
+									}
+								}
 							}
 						}
 					});

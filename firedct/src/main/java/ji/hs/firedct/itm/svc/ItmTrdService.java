@@ -1,4 +1,4 @@
-package ji.hs.firedct.itmtrd.svc;
+package ji.hs.firedct.itm.svc;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -22,8 +22,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ji.hs.firedct.cd.dao.Cd;
 import ji.hs.firedct.cd.dao.CdRepository;
 import ji.hs.firedct.co.Constant;
-import ji.hs.firedct.itmtrd.dao.ItmTrd;
-import ji.hs.firedct.itmtrd.dao.ItmTrdRepository;
+import ji.hs.firedct.itm.dao.ItmTrd;
+import ji.hs.firedct.itm.dao.ItmTrdRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**

@@ -1,4 +1,4 @@
-package ji.hs.firedct.itmfincsts.dao;
+package ji.hs.firedct.itm.dao;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
