@@ -28,6 +28,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -55,6 +57,14 @@ public class ItmService {
 	
 	@Value("${constant.dart.api.key}")
 	private String dartApiKey;
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public List<Itm> getAllItms(){
+		return itmRepo.findAll(PageRequest.of(0, 100, Sort.by("itmCd").ascending())).toList();
+	}
 	
 	/**
 	 * KRX 종목 기본 정보 수집

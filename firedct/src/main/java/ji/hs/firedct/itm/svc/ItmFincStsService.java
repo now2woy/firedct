@@ -5,8 +5,10 @@ import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -43,21 +45,40 @@ public class ItmFincStsService {
 	/**
 	 * Dart 년도 / 분기 재무제표 수집
 	 */
-	public void itmFincStsCrawling(final String yr, final String qt) {
+	public void itmFincStsCrawling(final String yr, final String qt, final String itmCd) {
 		log.info("{}년도 {} 재무제표 수집 시작", yr, qt);
 		
 		final ObjectMapper mapper = new ObjectMapper();
 		
 		// Dart 종목 코드를 가진 모든 자료 조회
-		final List<Itm> itmLst = itmRepo.findByDartItmCdIsNotNull(null);
+		List<Itm> itmLst = null;
+		
+		// 종목코드가 있을 경우
+		if(StringUtils.isNotEmpty(itmCd)) {
+			Optional<Itm> temp = itmRepo.findByItmCd(itmCd);
+			
+			// 조회 결과가 있을 경우
+			if(temp.isPresent()) {
+				// 대상 리스트에 담는다.
+				itmLst = new ArrayList<>();
+				itmLst.add(temp.get());
+			}
+			
+		// 종목코드가 없을 경우
+		}else {
+			// 전체 리스트를 조회한다.
+			itmLst = itmRepo.findByDartItmCdIsNotNull(null);
+		}
 		
 		// 종목 재무제표 List
 		final List<ItmFincSts> itmFincStsLst = new ArrayList<ItmFincSts>();
 		
+		// 대상 목록 루핑
 		itmLst.stream().forEach(itm -> {
 			try{
 				Map<String, Object> map = mapper.readValue(getDataFromUrl(itm.getDartItmCd(), yr, qt), mapper.getTypeFactory().constructMapLikeType(Map.class, String.class, Object.class));
 				
+				// URL 조회 결과가 정상일 경우
 				if("000".equals(map.get("status"))) {
 					
 					List<Map<String, String>> blockLst = (ArrayList<Map<String, String>>)map.get("list");
@@ -69,15 +90,12 @@ public class ItmFincStsService {
 					itmFincSts.setYr(yr);
 					itmFincSts.setQt(qt);
 					
+					Map<String, BigDecimal> temp = new HashMap<>();
+					
 					blockLst.stream().forEach(block -> {
-						// 영업수익(매출액과 같다)
-						if("ifrs-full_GrossProfit".equals(block.get("account_id"))) {
-							if(StringUtils.isNotEmpty(block.get("thstrm_amount"))) {
-								itmFincSts.setSalAmt(new BigDecimal(block.get("thstrm_amount")));
-							}
-							
-						// 매출액(영업수익과 같다)
-						}else if("ifrs-full_Revenue".equals(block.get("account_id"))) {
+						// 영업수익, 매출액
+						if("ifrs-full_GrossProfit".equals(block.get("account_id"))
+						|| "ifrs-full_Revenue".equals(block.get("account_id"))){
 							if(StringUtils.isNotEmpty(block.get("thstrm_amount"))) {
 								itmFincSts.setSalAmt(new BigDecimal(block.get("thstrm_amount")));
 							}
@@ -98,17 +116,25 @@ public class ItmFincStsService {
 									itmFincSts.setTsNetIncmAmt(new BigDecimal(block.get("thstrm_amount")));
 								}
 							}
+						
+						// 법인세비용차감전순이익(손실)
+						}else if("ifrs-full_ProfitLossBeforeTax".equals(block.get("account_id"))) {
+							if(StringUtils.isNotEmpty(block.get("thstrm_amount"))) {
+								temp.put("법인세비용차감전순이익", new BigDecimal(block.get("thstrm_amount")));
+							}
+							
+						// 법인세비용(수익)
+						}else if("ifrs-full_IncomeTaxExpenseContinuingOperations".equals(block.get("account_id"))) {
+							if(StringUtils.isNotEmpty(block.get("thstrm_amount"))) {
+								temp.put("법인세비용", new BigDecimal(block.get("thstrm_amount")));
+							}
 							
 						// 표준계정코드가 아니더라도 필요한 자료일 수 있다
 						}else if("-표준계정코드 미사용-".equals(block.get("account_id"))) {
-							// 영업수익(매출액과 같다)
-							if("영업수익".equals(block.get("account_nm"))){
-								if(StringUtils.isNotEmpty(block.get("thstrm_amount"))) {
-									itmFincSts.setSalAmt(new BigDecimal(block.get("thstrm_amount")));
-								}
-								
-							// 매출액(영업수익과 같다)
-							}else if("매출액".equals(block.get("account_nm"))) {
+							// 영업수익, 매출액
+							if("영업수익".equals(block.get("account_nm"))
+							|| "I. 영업수익".equals(block.get("account_nm"))
+							|| "매출액".equals(block.get("account_nm"))){
 								if(StringUtils.isNotEmpty(block.get("thstrm_amount"))) {
 									itmFincSts.setSalAmt(new BigDecimal(block.get("thstrm_amount")));
 								}
@@ -126,6 +152,7 @@ public class ItmFincStsService {
 								  || "연결당기순이익".equals(block.get("account_nm"))
 								  || "연결분기순이익".equals(block.get("account_nm"))
 								  || "당기순이익(손실)".equals(block.get("account_nm"))
+								  || "분기순이익(손실)".equals(block.get("account_nm"))
 								  || "1. 당기순이익(손실)".equals(block.get("account_nm"))
 								  || "연결당기순이익(손실)".equals(block.get("account_nm"))
 								  || "분기연결순이익(손실)".equals(block.get("account_nm"))) {
@@ -139,6 +166,22 @@ public class ItmFincStsService {
 							}
 						}
 					});
+					
+					// 당기순이익이 없고 법인세비용차감전순이익과 법인세비용이 있을 경우 계산한다.
+					if(itmFincSts.getTsNetIncmAmt() == null && temp.containsKey("법인세비용차감전순이익") && temp.containsKey("법인세비용")){
+						// 당기순이익 = 법인세비용차감전순이익 - 법인세비용
+						itmFincSts.setTsNetIncmAmt(temp.get("법인세비용차감전순이익").subtract(temp.get("법인세비용")));
+					}
+					
+					// temp 객체 초기화
+					if(temp.containsKey("법인세비용차감전순이익")) {
+						temp.remove("법인세비용차감전순이익");
+					}
+					
+					// temp 객체 초기화
+					if(temp.containsKey("법인세비용")) {
+						temp.remove("법인세비용");
+					}
 					
 					log.info("{}, {}, {}, {}, {}", itmFincSts.getItmCd(), itmFincSts.getMkt(), itmFincSts.getSalAmt(), itmFincSts.getOprIncmAmt(), itmFincSts.getTsNetIncmAmt());
 					

@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * @author now2woy
  *
  */
-public interface ItmRepository extends JpaRepository<Itm, ItmPrimaryKey> {
+public interface ItmRepository extends JpaRepository<Itm, String> {
 	/**
 	 * itmCd에 해당하는 자료 조회
 	 * @param itmCd

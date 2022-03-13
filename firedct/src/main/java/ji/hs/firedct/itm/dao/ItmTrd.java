@@ -8,6 +8,8 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.IdClass;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
@@ -15,14 +17,20 @@ import javax.persistence.TemporalType;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
-import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
  * 종목 거래 Entity
  * @author now2woy
  *
  */
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"itm"})
 @Entity
 @DynamicInsert
 @DynamicUpdate
@@ -105,4 +113,15 @@ public class ItmTrd implements Serializable {
 	 */
 	@Column(name = "LNTM_MV_AVG_AMT", nullable = true, length = 20)
 	private BigDecimal lntmMvAvgAmt;
+	
+	/**
+	 * 거래회전율(당일거래주식수 / 전체주식수)
+	 */
+	@Column(name = "TRD_TNOV_RT", nullable = true, length = 20)
+	private BigDecimal trdTnovRt;
+	
+	@ManyToOne
+	@JoinColumn(name = "ITM_CD", nullable = false, insertable = false, updatable = false)
+	@JsonManagedReference
+	private Itm itm;
 }

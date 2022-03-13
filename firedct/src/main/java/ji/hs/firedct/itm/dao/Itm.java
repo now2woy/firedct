@@ -2,11 +2,12 @@ package ji.hs.firedct.itm.dao;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
-import javax.persistence.IdClass;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
@@ -14,19 +15,24 @@ import javax.persistence.TemporalType;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
-import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
  * 종목 Entity
  * @author now2woy
  *
  */
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"itmTrds", "itmFincStss"})
 @Entity
 @DynamicInsert
 @DynamicUpdate
 @Table(name = "ITM")
-@IdClass(ItmPrimaryKey.class)
 public class Itm implements Serializable {
 	private static final long serialVersionUID = -2553168850727723633L;
 	
@@ -46,7 +52,6 @@ public class Itm implements Serializable {
 	/**
 	 * 상장시장
 	 */
-	@Id
 	@Column(name = "MKT", length = 5)
 	private String mkt;
 	
@@ -68,4 +73,13 @@ public class Itm implements Serializable {
 	@Column(name = "PUB_DT")
 	@Temporal(TemporalType.DATE)
 	private Date pubDt;
+	
+	@OneToMany(mappedBy = "itm")
+	@JsonBackReference
+	private List<ItmTrd> itmTrds;
+	
+	@OneToMany(mappedBy = "itm")
+	@JsonBackReference
+	private List<ItmFincSts> itmFincStss;
+	
 }

@@ -1,5 +1,7 @@
 package ji.hs.firedct.pgr.dao;
 
+import java.io.Serializable;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -20,7 +22,9 @@ import lombok.Data;
 @DynamicInsert
 @DynamicUpdate
 @Table(name = "PGR_LOK")
-public class PgrLok {
+public class PgrLok implements Serializable {
+	private static final long serialVersionUID = 2039012478514339131L;
+
 	/**
 	 * 프로그램코드
 	 */

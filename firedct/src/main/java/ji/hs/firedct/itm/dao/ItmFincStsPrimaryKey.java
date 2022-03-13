@@ -23,11 +23,6 @@ public class ItmFincStsPrimaryKey implements Serializable {
 	private String itmCd;
 	
 	/**
-	 * 시장
-	 */
-	private String mkt;
-	
-	/**
 	 * 연도(년도)
 	 */
 	private String yr;

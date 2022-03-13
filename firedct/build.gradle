@@ -1,6 +1,7 @@
 plugins {
 	id 'org.springframework.boot' version '2.6.3'
 	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+	id "com.github.node-gradle.node" version "3.2.1"
 	id 'java'
 }
 
@@ -42,4 +43,21 @@ dependencies {
 
 test {
 	useJUnitPlatform()
+}
+
+
+node {
+	nodeProjectDir = file("${project.projectDir}/webapp")
+}
+
+def yarn = tasks.named("yarn")
+
+def buildTask = tasks.register("buildWebapp", NpxTask) {
+	command = "react-scripts"
+	args = ["build"]
+	dependsOn(yarn)
+	inputs.dir(fileTree("webapp/src"))
+	inputs.dir("webapp/node_modules")
+	outputs.dir("${buildDir}/webapp")
+	environment = ["BUILD_PATH": "${project.projectDir}/src/main/resources/static"]
 }

@@ -19,8 +19,30 @@ public interface ItmTrdRepository extends JpaRepository<ItmTrd, ItmTrdPrimaryKey
 	 * @param itmCd
 	 * @return
 	 */
-	@Query("SELECT MAX(i.dt) AS dt FROM ItmTrd i where i.itmCd = :itmCd")
+	@Query("SELECT MAX(i.dt) AS dt FROM ItmTrd i WHERE i.itmCd = :itmCd")
 	public Date findMaxDtByItmCd(@Param("itmCd") String itmCd);
+	
+	/**
+	 * 수집된 자료 중 최종 거래일자 조회
+	 * @return
+	 */
+	@Query("SELECT MAX(i.dt) AS dt FROM ItmTrd i")
+	public Date findMaxDt();
+	
+	/**
+	 * 종목코드에 해당하는 거래정보 조회
+	 * @param itmCd
+	 * @return
+	 */
+	public List<ItmTrd> findByItmCd(String itmCd);
+	
+	/**
+	 * 일자에 해당하는 거래정보 조회
+	 * @param dt
+	 * @return
+	 */
+	@Query("SELECT DISTINCT t FROM ItmTrd t LEFT JOIN FETCH t.itm i LEFT JOIN FETCH i.itmFincStss f WHERE t.dt = :dt AND i.dartItmCd IS NOT NULL")
+	public List<ItmTrd> findByDt(@Param("dt") Date dt, Pageable page);
 	
 	/**
 	 * 초단기 이동평균금액 빈값 조회
@@ -49,6 +71,13 @@ public interface ItmTrdRepository extends JpaRepository<ItmTrd, ItmTrdPrimaryKey
 	 * @return
 	 */
 	public List<ItmTrd> findByLntmMvAvgAmtIsNull(Pageable page);
+	
+	/**
+	 * 거래회전율 빈값 조회
+	 * @param page
+	 * @return
+	 */
+	public List<ItmTrd> findByTrdTnovRtIsNull(Pageable page);
 	
 	/**
 	 * 

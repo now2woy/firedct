@@ -44,41 +44,17 @@ public class SchedulerConfig {
 		// DART 종목코드 수집
 		itmService.dartCoprCdFileDownload();
 		
-		// KRX 종목 시세 정보 수집
+		// 최종수집일 + 1부터 현재일까지 KRX 일자별 종목 시세 수집
 		itmTrdService.itmTrdCrawling();
-		
-		// 5일 이동 평균 금액 생성
-		itmTrdService.createVsttmMvAvgAmt(5000);
-		
-		// 20일 이동 평균 금액 생성
-		itmTrdService.createSttmMvAvgAmt(5000);
-		
-		// 60일 이동 평균 금액 생성
-		itmTrdService.createMdtmMvAvgAmt(5000);
-		
-		// 120일 이동 평균 금액 생성
-		itmTrdService.createLntmMvAvgAmt(5000);
 	}
 	
 	/**
 	 * 테스트용 스케쥴
 	 */
-	@Scheduled(cron = "*/1 * * * * *")
+	/*
+	@Scheduled(cron = "0 1/5 * * * *")
 	public void test() {
-		
-		if(pgrLokService.getLokYn("00001")) {
-			log.info("프로그램 실행 시작");
-			
-			try {
-				Thread.sleep(20000L);
-			}catch(Exception e) {
-				log.error("", e);
-			}
-			
-			pgrLokService.unLok("00001");
-			log.info("프로그램 실행 종료");
-		}else {
-			log.info("프로그램 잠금 중");
-		}
+		itmFincStsService.itmFincStsCrawling("2021", "11014", "009540");
 	}
+	*/
 }
