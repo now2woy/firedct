@@ -9,20 +9,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import ji.hs.firedct.itm.dao.ItmTrd;
-import ji.hs.firedct.itm.svc.ItmService;
-import ji.hs.firedct.itm.svc.ItmTrdService;
+import ji.hs.firedct.itm.svc.ItmViewService;
 
 @RestController
 @RequestMapping("/api/itms")
 public class ItmCtrl {
 	@Autowired
-	private ItmService itmService;
-	
-	@Autowired
-	private ItmTrdService itmTrdService;
+	private ItmViewService itmViewService;
 	
 	@GetMapping("")
 	public List<ItmTrd> allItmTrd(@RequestParam(defaultValue = "0") String page){
-		return itmTrdService.allItmTrd(Integer.parseInt(page));
+		return itmViewService.allItmTrd(Integer.parseInt(page));
 	}
 }

@@ -3,6 +3,7 @@ package ji.hs.firedct.itm.dao;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -13,6 +14,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+import javax.persistence.Transient;
 
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
@@ -117,11 +119,149 @@ public class ItmTrd implements Serializable {
 	/**
 	 * 거래회전율(당일거래주식수 / 전체주식수)
 	 */
-	@Column(name = "TRD_TNOV_RT", nullable = true, length = 20)
+	@Column(name = "TRD_TNOV_RT", nullable = true)
 	private BigDecimal trdTnovRt;
+	
+	/**
+	 * PER
+	 */
+	@Column(name = "PER", nullable = true)
+	private BigDecimal per;
+	
+	/**
+	 * PBR
+	 */
+	@Column(name = "PBR", nullable = true)
+	private BigDecimal pbr;
+	
+	/**
+	 * PSR
+	 */
+	@Column(name = "PSR", nullable = true)
+	private BigDecimal psr;
+	
+	/**
+	 * BPS
+	 */
+	@Column(name = "BPS", nullable = true)
+	private BigDecimal bps;
+	
+	/**
+	 * CPS
+	 */
+	@Column(name = "CPS", nullable = true)
+	private BigDecimal cps;
+	
+	/**
+	 * SPS
+	 */
+	@Column(name = "SPS", nullable = true)
+	private BigDecimal sps;
 	
 	@ManyToOne
 	@JoinColumn(name = "ITM_CD", nullable = false, insertable = false, updatable = false)
 	@JsonManagedReference
 	private Itm itm;
+	
+	@Transient
+	private List<ItmFincSts> itmFincStss;
+	
+	/**
+	 * 합계 EPS(4분기 자료를 합해서 사용해야 한다.)
+	 */
+	@Transient
+	private BigDecimal sumEps;
+	
+	/**
+	 * 합계 EPS 건수
+	 */
+	@Transient
+	private int sumEpsCnt;
+	
+	@Transient
+	private BigDecimal totIsuStkQty;
+	
+	/**
+	 * 합계 매출액
+	 */
+	@Transient
+	private BigDecimal sumSalAmt;
+	
+	/**
+	 * 매출액 합계 건수
+	 */
+	@Transient
+	private int sumSalAmtCnt;
+	
+	/**
+	 * 종목명
+	 */
+	@Transient
+	private String itmNm;
+	
+	/**
+	 * 365일 최저 PER
+	 */
+	@Transient
+	private BigDecimal minPer;
+	
+	/**
+	 * 365일 최대 PER
+	 */
+	@Transient
+	private BigDecimal maxPer;
+	
+	/**
+	 * 365일 최저 PBR
+	 */
+	@Transient
+	private BigDecimal minPbr;
+	
+	/**
+	 * 365일 최대 PBR
+	 */
+	@Transient
+	private BigDecimal maxPbr;
+	
+	/**
+	 * ROE
+	 */
+	@Transient
+	private BigDecimal roe;
+	
+	/**
+	 * ROA
+	 */
+	@Transient
+	private BigDecimal roa;
+	
+	/**
+	 * 부채비율
+	 */
+	@Transient
+	private BigDecimal debtRt;
+	
+	/**
+	 * 일자 String
+	 */
+	@Transient
+	private String dtStr;
+	
+	/**
+	 * 356 최저 종가
+	 */
+	@Transient
+	private BigDecimal minEdAmt;
+	
+	/**
+	 * 365 최고 종가
+	 */
+	@Transient
+	private BigDecimal maxEdAmt;
+	
+	/**
+	 * 목표가
+	 */
+	@Transient
+	private BigDecimal tgEdAmt;
 }

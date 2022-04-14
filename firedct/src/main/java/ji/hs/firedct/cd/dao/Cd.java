@@ -55,6 +55,12 @@ public class Cd implements Serializable {
 	private String cdNm;
 	
 	/**
+	 * 코드보조명
+	 */
+	@Column(name = "CD_SUB_NM", nullable = true)
+	private String cdSubNm;
+	
+	/**
 	 * 사용여부
 	 */
 	@Column(name = "USE_YN", nullable = false, length = 1)

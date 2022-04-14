@@ -2,12 +2,10 @@ package ji.hs.firedct.itm.svc;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,23 +18,17 @@ import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
-import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
-import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ji.hs.firedct.cd.dao.Cd;
 import ji.hs.firedct.cd.dao.CdRepository;
-import ji.hs.firedct.co.Constant;
+import ji.hs.firedct.co.Utils;
 import ji.hs.firedct.itm.dao.Itm;
 import ji.hs.firedct.itm.dao.ItmRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -55,38 +47,50 @@ public class ItmService {
 	@Autowired
 	private ItmRepository itmRepo;
 	
+	/**
+	 * DART API를 사용하기 위한 KEY
+	 */
 	@Value("${constant.dart.api.key}")
 	private String dartApiKey;
 	
 	/**
-	 * 
-	 * @return
+	 * 거래소에서 JSON 데이터를 가져오는 URL
 	 */
-	public List<Itm> getAllItms(){
-		return itmRepo.findAll(PageRequest.of(0, 100, Sort.by("itmCd").ascending())).toList();
-	}
+	@Value("${constant.url.krxJson}")
+	private String krxJsonUrl;
+	
+	/**
+	 * DART에서 종목코드를 가져오는 URL
+	 */
+	@Value("${constant.url.dartCoprCd}")
+	private String dartCoprCdUrl;
+	
+	/**
+	 * DART 종목코드는 압축파일로 다운로드 되어 파일 저장 경로가 필요
+	 */
+	@Value("${constant.path.download}")
+	private String downloadPath;
 	
 	/**
 	 * KRX 종목 기본 정보 수집
 	 */
-	public void itmCrawling() {
+	public void crawling() {
+		// 시장 코드 조회
 		final List<Cd> mktLst = cdRepo.findByCls("00001");
+		// 종목정보를 담을 List 생성
 		final List<Itm> itmLst = new ArrayList<>();
-		
-		final SimpleDateFormat format = new SimpleDateFormat("yyyy/MM/dd");
-		final ObjectMapper mapper = new ObjectMapper();
 		
 		mktLst.stream().forEach(mkt -> {
 			try {
 				log.info("{} 수집 시작", mkt.getCd());
 				
-				Document doc = Jsoup.connect(Constant.KRX_JSON_URL)
+				Document doc = Jsoup.connect(krxJsonUrl)
 								.data("bld", "dbms/MDC/STAT/standard/MDCSTAT01901")
 								.data("mktId", mkt.getCd())
 								.get();
 				
 				Map<String, Object> map = new HashMap<>();
-				map = mapper.readValue(doc.text(), mapper.getTypeFactory().constructMapLikeType(Map.class, String.class, Object.class));
+				map = Utils.jsonParse(doc.text());
 				
 				List<Map<String, String>> blockLst = (ArrayList<Map<String, String>>)map.get("OutBlock_1");
 				
@@ -97,7 +101,7 @@ public class ItmService {
 						itm.setItmCd(json.get("ISU_SRT_CD"));
 						itm.setItmNm(json.get("ISU_NM"));
 						itm.setMkt(mkt.getCd());
-						itm.setPubDt(format.parse(json.get("LIST_DD")));
+						itm.setPubDt(Utils.dateParse("yyyy/MM/dd", json.get("LIST_DD")));
 						itm.setStdItmCd(json.get("ISU_CD"));
 					}catch (Exception e) {
 						log.error("", e);
@@ -126,13 +130,13 @@ public class ItmService {
 		InputStream is = null;
 		
 		try {
-			URL url = new URL(Constant.DART_CORP_CD_URL + "?crtfc_key=" + dartApiKey);
+			URL url = new URL(dartCoprCdUrl + "?crtfc_key=" + dartApiKey);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			conn.setRequestMethod("GET");
 			
 			is = conn.getInputStream();
 			
-			unzip(is, new File(Constant.ENV_DOWNLOAD_PATH), "UTF-8");
+			Utils.unzip(is, new File(downloadPath), "UTF-8");
 			
 			dartCoprCdParser();
 			
@@ -145,51 +149,6 @@ public class ItmService {
 	}
 	
 	/**
-	 * 압축을 푼다.
-	 * @param is
-	 * @param destDir
-	 * @param charsetName
-	 * @throws IOException
-	 */
-	private void unzip(InputStream is, File destDir, String charsetName) throws IOException {
-		ZipArchiveInputStream zis = null;
-		ZipArchiveEntry entry = null;
-		String name = null;
-		File target = null;
-		FileOutputStream fos = null;
-		
-		try {
-			zis = new ZipArchiveInputStream(is, charsetName, false);
-			
-			while ((entry = zis.getNextZipEntry()) != null){
-				name = entry.getName();
-				
-				target = new File (destDir, name);
-				
-				if(entry.isDirectory()){
-					target.mkdirs();
-				} else {
-					target.createNewFile();
-					
-					try {
-						fos = new FileOutputStream(target);
-						IOUtils.copy(zis, fos);
-					}catch(Exception e) {
-						log.error("", e);
-					}finally {
-						IOUtils.closeQuietly(fos);
-					}
-				}
-			}
-		}catch(Exception e) {
-			log.error("", e);
-		}finally {
-			IOUtils.closeQuietly(zis);
-			IOUtils.closeQuietly(fos);
-		}
-	}
-	
-	/**
 	 * Dart 종목코드 파일 수집
 	 */
 	private void dartCoprCdParser() {
@@ -197,7 +156,7 @@ public class ItmService {
 		
 		try {
 			XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
-			XMLEventReader reader = xmlInputFactory.createXMLEventReader(new FileInputStream(Constant.ENV_DOWNLOAD_PATH + "/CORPCODE.xml"));
+			XMLEventReader reader = xmlInputFactory.createXMLEventReader(new FileInputStream(downloadPath + "/CORPCODE.xml"));
 			
 			List<Itm> itmLst = new ArrayList<>();
 			Itm itm = null;

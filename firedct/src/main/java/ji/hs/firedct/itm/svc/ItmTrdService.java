@@ -1,8 +1,6 @@
 package ji.hs.firedct.itm.svc;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -12,19 +10,22 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import ji.hs.firedct.cd.dao.Cd;
 import ji.hs.firedct.cd.dao.CdRepository;
-import ji.hs.firedct.co.Constant;
+import ji.hs.firedct.co.Utils;
+import ji.hs.firedct.itm.dao.ItmFincSts;
+import ji.hs.firedct.itm.dao.ItmFincStsRepository;
 import ji.hs.firedct.itm.dao.ItmRepository;
 import ji.hs.firedct.itm.dao.ItmTrd;
 import ji.hs.firedct.itm.dao.ItmTrdRepository;
+import ji.hs.firedct.tactic.svc.Tactic000;
+import ji.hs.firedct.tactic.svc.Tactic020;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -44,17 +45,20 @@ public class ItmTrdService {
 	@Autowired
 	private ItmTrdRepository itmTrdRepo;
 	
+	@Autowired
+	private ItmFincStsRepository itmFincStsRepo;
+	
+	@Autowired
+	private Tactic020 tactic020;
+	
+	@Autowired
+	private Tactic000 tactic000;
+	
 	/**
-	 * V
-	 * 수집된 최종일자의 시총금액 작은순으로 정렬하여 100건 조회
-	 * 
-	 * @param page
-	 * @return
+	 * 거래소에서 JSON 데이터를 가져오는 URL
 	 */
-	public List<ItmTrd> allItmTrd(int page){
-		Date maxDt = itmTrdRepo.findMaxDt();
-		return itmTrdRepo.findByDt(maxDt, PageRequest.of(page, 100, Sort.by("mktTotAmt").ascending()));
-	}
+	@Value("${constant.url.krxJson}")
+	private String krxJsonUrl;
 	
 	/**
 	 * S
@@ -62,12 +66,17 @@ public class ItmTrdService {
 	 * 최종수집일 + 1부터 현재일까지 KRX 일자별 종목 시세 수집
 	 * 매일 수집하는 스케쥴에서 사용
 	 */
-	public void itmTrdCrawling() {
+	public void crawling() {
 		try {
-			final List<String> dtLst = findMaxDtByItmCd(new SimpleDateFormat("yyyyMMdd"));
+			final List<String> dtLst = findMaxDtByItmCd();
 			
 			dtLst.stream().forEach(dt -> {
 				itmTrdCrawlingByDt(dt);
+				createPer(dt);
+				createBPSAndPBRAndSPSAndPSR(dt);
+				tactic000.publishing(dt);
+				tactic020.publishing(dt);
+				
 			});
 		}catch(Exception e) {
 			log.error("", e);
@@ -75,13 +84,10 @@ public class ItmTrdService {
 	}
 	
 	/**
-	 * S
-	 * 
 	 * 최종 수집일 다음날 KRX 일자별 종목 시세 수집
 	 * 2007년 1월 2일 부터 현재일까지 수집할때 사용
 	 */
 	public void itmTrdCrawlingByLastDayAfter() {
-		SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
 		Page<ItmTrd> itmTrd = itmTrdRepo.findAll(PageRequest.of(0, 1, Sort.by("dt").descending()));
 		
 		// 조회된 데이터가 없을 경우 2007년 1월 2일 부터 수집
@@ -89,16 +95,16 @@ public class ItmTrdService {
 			itmTrdCrawlingByDt("20070102");
 		}else {
 			// 현재일
-			final int currDate = Integer.parseInt(format.format(new Date()));
+			final int currDate = Integer.parseInt(Utils.dateFormat(new Date()));
 			
 			// 가져온 날자 + 1
 			Date findDt = DateUtils.addDays(itmTrd.toList().get(0).getDt(), 1);
 			
 			while(true) {
 				// 현재일보다 작거나 같을 경우
-				if(currDate >= Integer.parseInt(format.format(findDt))) {
+				if(currDate >= Integer.parseInt(Utils.dateFormat(findDt))) {
 					// 거래내역이 있는지 확인
-					if(!isTrdDt(format.format(findDt))) {
+					if(!isTrdDt(Utils.dateFormat(findDt))) {
 						// 거래내역이 없을 경우 증가
 						findDt = DateUtils.addDays(findDt, 1);
 						
@@ -114,32 +120,29 @@ public class ItmTrdService {
 			}
 			
 			// 현재일보다 작거나 같을 경우에만 수집
-			if(currDate >= Integer.parseInt(format.format(findDt))) {
-				itmTrdCrawlingByDt(format.format(findDt));
+			if(currDate >= Integer.parseInt(Utils.dateFormat(findDt))) {
+				itmTrdCrawlingByDt(Utils.dateFormat(findDt));
 			}
 		}
 	}
 	
 	/**
-	 * S
-	 * 
 	 * 일자에 거래내역이 있는지 확인
 	 * @param dt
 	 * @return
 	 */
 	private boolean isTrdDt(final String dt) {
-		final ObjectMapper mapper = new ObjectMapper();
 		final String mkt = "STK";
 		boolean isTrdDt = false;
 		
 		try {
-			Document doc = Jsoup.connect(Constant.KRX_JSON_URL)
+			Document doc = Jsoup.connect(krxJsonUrl)
 							.data("bld", "dbms/MDC/STAT/standard/MDCSTAT01501")
 							.data("mktId", mkt)
 							.data("trdDd", dt)
 							.get();
 			
-			Map<String, Object> map = mapper.readValue(doc.text(), mapper.getTypeFactory().constructMapLikeType(Map.class, String.class, Object.class));
+			Map<String, Object> map = Utils.jsonParse(doc.text());
 			
 			List<Map<String, String>> blockLst = (ArrayList<Map<String, String>>)map.get("OutBlock_1");
 			
@@ -155,14 +158,10 @@ public class ItmTrdService {
 	}
 	
 	/**
-	 * S
-	 * 
 	 * KRX 일자별 종목 시세 수집
 	 * @param dt
 	 */
 	private void itmTrdCrawlingByDt(final String dt) {
-		final SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
-		final ObjectMapper mapper = new ObjectMapper();
 		final List<Cd> mktLst = cdRepo.findByCls("00001");
 		
 		mktLst.stream().forEach(mkt -> {
@@ -171,13 +170,13 @@ public class ItmTrdService {
 			try {
 				final List<ItmTrd> itmLst = new ArrayList<>();
 				
-				Document doc = Jsoup.connect(Constant.KRX_JSON_URL)
+				Document doc = Jsoup.connect(krxJsonUrl)
 								.data("bld", "dbms/MDC/STAT/standard/MDCSTAT01501")
 								.data("mktId", mkt.getCd())
 								.data("trdDd", dt)
 								.get();
 				
-				Map<String, Object> map = mapper.readValue(doc.text(), mapper.getTypeFactory().constructMapLikeType(Map.class, String.class, Object.class));
+				Map<String, Object> map = Utils.jsonParse(doc.text());
 				
 				List<Map<String, String>> blockLst = (ArrayList<Map<String, String>>)map.get("OutBlock_1");
 				
@@ -190,7 +189,7 @@ public class ItmTrdService {
 						try {
 							if(itmRepo.findByItmCd(itm.get("ISU_SRT_CD")).isPresent()) {
 								itmTrd.setItmCd(itm.get("ISU_SRT_CD"));
-								itmTrd.setDt(format.parse(dt));
+								itmTrd.setDt(Utils.dateParse(dt));
 								itmTrd.setEdAmt(new BigDecimal(itm.get("TDD_CLSPRC").replaceAll(",", "")));
 								itmTrd.setIncr(new BigDecimal(itm.get("CMPPREVDD_PRC").replaceAll(",", "")));
 								itmTrd.setTrdQty(new BigDecimal(itm.get("ACC_TRDVOL").replaceAll(",", "")));
@@ -200,7 +199,7 @@ public class ItmTrdService {
 								
 								if(itmTrd.getTrdQty().compareTo(BigDecimal.ZERO) > 0 && itmTrd.getIsuStkQty().compareTo(BigDecimal.ZERO) > 0) {
 									// ROUND((당일거래수 / 전체주식수) * 100, 2)
-									itmTrd.setTrdTnovRt(itmTrd.getTrdQty().divide(itmTrd.getIsuStkQty(), 10, RoundingMode.HALF_EVEN).multiply(new BigDecimal("100")).setScale(2, RoundingMode.HALF_EVEN));
+									itmTrd.setTrdTnovRt(Utils.multiply(Utils.divide(itmTrd.getTrdQty(), itmTrd.getIsuStkQty(), 10), new BigDecimal("100"), 2));
 								}else {
 									itmTrd.setTrdTnovRt(BigDecimal.ZERO);
 								}
@@ -238,17 +237,15 @@ public class ItmTrdService {
 	}
 	
 	/**
-	 * S
-	 * 
 	 * 최종거래일자부터 현재일자까지 List
 	 * 
 	 * @param format
 	 * @param itmCd
 	 * @return
 	 */
-	private List<String> findMaxDtByItmCd(SimpleDateFormat format) throws Exception {
+	private List<String> findMaxDtByItmCd() throws Exception {
 		final List<String> dateLst = new ArrayList<>();
-		final int currDate = Integer.parseInt(format.format(new Date()));
+		final int currDate = Integer.parseInt(Utils.dateFormat(new Date()));
 		
 		// 최종거래일 조회
 		Page<ItmTrd> itmTrd = itmTrdRepo.findAll(PageRequest.of(0, 1, Sort.by("dt").descending()));
@@ -257,7 +254,7 @@ public class ItmTrdService {
 		
 		// 조회된 데이터가 없을 경우 2007년 1월 2일 부터 수집
 		if(itmTrd.isEmpty()) {
-			lastCrawlingdate = format.parse("20070102");
+			lastCrawlingdate = Utils.dateParse("20070102");
 			
 		// 최종거래일이 있을 경우 사용
 		}else {
@@ -265,20 +262,18 @@ public class ItmTrdService {
 		}
 		
 		// 현재 일자보다 최종거래일이 작을 경우
-		while(currDate > Integer.parseInt(format.format(lastCrawlingdate))) {
+		while(currDate > Integer.parseInt(Utils.dateFormat(lastCrawlingdate))) {
 			// 최종거래일 + 1 하여 목록에 담는다.
 			lastCrawlingdate = DateUtils.addDays(lastCrawlingdate, 1);
-			dateLst.add(format.format(lastCrawlingdate));
+			dateLst.add(Utils.dateFormat(lastCrawlingdate));
 			
-			log.info("{}", format.format(lastCrawlingdate));
+			log.info("{}", Utils.dateFormat(lastCrawlingdate));
 		}
 		
 		return dateLst;
 	}
 	
 	/**
-	 * S
-	 * 
 	 * scale 만큼 평균을 구한다.
 	 * 
 	 * @param itmTrd
@@ -292,12 +287,142 @@ public class ItmTrdService {
 		
 		if(itmTrdLst.size() == scale) {
 			for(int i = 0; i < scale; i++) {
-				mvAvgAmt = mvAvgAmt.add(itmTrdLst.get(i).getEdAmt());
+				mvAvgAmt = Utils.add(mvAvgAmt, itmTrdLst.get(i).getEdAmt());
 			}
 			
-			mvAvgAmt = mvAvgAmt.divide(new BigDecimal(scale), 0, RoundingMode.HALF_EVEN);
+			mvAvgAmt = Utils.divide(mvAvgAmt, new BigDecimal(scale), 0);
 		}
 		
 		return mvAvgAmt;
+	}
+	
+	/**
+	 * 해당일자의 PER을 생성한다.
+	 * @param dt
+	 */
+	public void createPer(String dt) {
+		try {
+			log.info("{}일 PER 생성 시작", dt);
+			
+			List<ItmTrd> itmTrds = itmTrdRepo.findByDt(Utils.dateParse(dt));
+			
+			itmTrds.stream().forEach(itmTrd -> {
+				// 4개 분기 데이터를 가져온다.
+				List<ItmFincSts> itmFincStss = itmFincStsRepo.findByItmCdAndStdDtLessThanEqual(itmTrd.getItmCd(), Utils.dateParse(dt), PageRequest.of(0, 4, Sort.by("stdDt").descending()));
+				
+				// 4개 분기 일때만 처리 한다.
+				if(itmFincStss.size() == 4) {
+					itmTrd.setSumEpsCnt(0);
+					
+					itmFincStss.stream().forEach(itmFincSts -> {
+						// 당기기본주당순이익이 있을 때
+						if(itmFincSts.getTsBscEps() != null) {
+							// 당기기본주당순이익을 EPS에 더한다.
+							itmTrd.setSumEps(Utils.add(itmTrd.getSumEps(), itmFincSts.getTsBscEps()));
+							itmTrd.setSumEpsCnt(Utils.addCnt(itmTrd.getSumEpsCnt(), itmTrd.getSumEps(), itmFincSts.getTsBscEps()));
+							
+						// 당기희석주당순이익이 있을 때
+						}else if(itmFincSts.getTsDltdEps() != null) {
+							// 당기희석주당순이익을 EPS에 더한다.
+							itmTrd.setSumEps(Utils.add(itmTrd.getSumEps(), itmFincSts.getTsDltdEps()));
+							itmTrd.setSumEpsCnt(Utils.addCnt(itmTrd.getSumEpsCnt(), itmTrd.getSumEps(), itmFincSts.getTsDltdEps()));
+							
+						// 계속영업기본주당순이익이 있을 때
+						}else if(itmFincSts.getOprBscEps() != null) {
+							// 계속영업기본주당순이익을 EPS에 더한다.
+							itmTrd.setSumEps(Utils.add(itmTrd.getSumEps(), itmFincSts.getOprBscEps()));
+							itmTrd.setSumEpsCnt(Utils.addCnt(itmTrd.getSumEpsCnt(), itmTrd.getSumEps(), itmFincSts.getOprBscEps()));
+							
+						// 계속영업희석주당순이익이 있을 때
+						}else if(itmFincSts.getOprDltdEps() != null) {
+							// 계속영업희석주당순이익을 EPS에 더한다.
+							itmTrd.setSumEps(Utils.add(itmTrd.getSumEps(), itmFincSts.getOprDltdEps()));
+							itmTrd.setSumEpsCnt(Utils.addCnt(itmTrd.getSumEpsCnt(), itmTrd.getSumEps(), itmFincSts.getOprDltdEps()));
+						}
+					});
+					
+					// 종가가 있고, EPS를 더한 횟수가 4번이고, EPS를 합한 결과가 0이 아닐 경우
+					if(itmTrd.getEdAmt() != null && itmTrd.getSumEpsCnt() == 4 && itmTrd.getSumEps().compareTo(BigDecimal.ZERO) != 0) {
+						// PER 생성
+						itmTrd.setPer(Utils.divide(itmTrd.getEdAmt(), itmTrd.getSumEps(), 2));
+						
+					}
+				}
+			});
+			
+			// PER을 저장한다.
+			itmTrdRepo.saveAllAndFlush(itmTrds);
+			
+			log.info("{}일 PER 생성 종료", dt);
+		}catch(Exception e) {
+			log.error("", e);
+		}
+	}
+	
+	/**
+	 * BPS, PBR, SPS, PSR 을 만든다.
+	 * @param dt
+	 */
+	public void createBPSAndPBRAndSPSAndPSR(String dt) {
+		try {
+			log.info("{}일 BPS, PBR 생성 시작", dt);
+			
+			List<ItmTrd> itmTrds = itmTrdRepo.findByDt(Utils.dateParse(dt));
+			
+			itmTrds.stream().forEach(itmTrd -> {
+				// 거래일 기준으로 직전 분기 자료를 조회한다.
+				List<ItmFincSts> itmFincStss = itmFincStsRepo.findByItmCdAndStdDtLessThanEqual(itmTrd.getItmCd(), Utils.dateParse(dt), PageRequest.of(0, 4, Sort.by("stdDt").descending()));
+				
+				// 기본주, 우선주 정보를 가져온다.
+				List<ItmTrd> qtys = itmTrdRepo.findByDtAndItmCdLike(Utils.dateParse(dt), itmTrd.getItmCd().substring(0, 5) + "%");
+				
+				// 기본주, 우선주의 주식 수를 더한다.
+				qtys.stream().forEach(qty -> {
+					itmTrd.setTotIsuStkQty(Utils.add(itmTrd.getTotIsuStkQty(), qty.getIsuStkQty()));
+				});
+				
+				if(!itmFincStss.isEmpty()) {
+					// 지배 자본이 있을 경우
+					if(itmFincStss.get(0).getOwnCpt() != null && itmFincStss.get(0).getOwnCpt().compareTo(BigDecimal.ZERO) != 0) {
+						// BPS를 만든다.
+						itmTrd.setBps(Utils.divide(itmFincStss.get(0).getOwnCpt(), itmTrd.getTotIsuStkQty(), 2));
+						
+					// 지배자본이 없을 경우 기본 자본이 있는지 확인
+					}else if(itmFincStss.get(0).getBscCpt() != null && itmFincStss.get(0).getBscCpt().compareTo(BigDecimal.ZERO) != 0) {
+						// BPS를 만든다.
+						itmTrd.setBps(Utils.divide(itmFincStss.get(0).getBscCpt(), itmTrd.getTotIsuStkQty(), 2));
+					}
+					
+					// PBR을 만든다.
+					itmTrd.setPbr(Utils.divide(itmTrd.getEdAmt(), itmTrd.getBps(), 2));
+					
+					// 4개 분기 자료가 조회되었을 경우
+					if(itmFincStss.size() == 4) {
+						itmTrd.setSumSalAmtCnt(0);
+						
+						itmFincStss.stream().forEach(itmFincSts -> {
+							itmTrd.setSumSalAmt(Utils.add(itmTrd.getSumSalAmt(), itmFincSts.getSalAmt()));
+							itmTrd.setSumSalAmtCnt(Utils.addCnt(itmTrd.getSumSalAmtCnt(), itmTrd.getSumSalAmt(), itmFincSts.getSalAmt()));
+						});
+						
+						// 합계 횟수가 4번이고, 합계금액이 0이 아닐때
+						if(itmTrd.getSumSalAmtCnt() == 4) {
+							// SPS를 생성한다.
+							itmTrd.setSps(Utils.divide(itmTrd.getSumSalAmt(), itmTrd.getTotIsuStkQty(), 2));
+						}
+						
+						// PSR을 만든다.
+						itmTrd.setPsr(Utils.divide(itmTrd.getEdAmt(), itmTrd.getSps(), 2));
+					}
+				}
+			});
+			
+			// 이동평균금액을 저장한다.
+			itmTrdRepo.saveAllAndFlush(itmTrds);
+			
+			log.info("{}일 BPS, PBR 생성 종료", dt);
+		}catch(Exception e) {
+			log.error("", e);
+		}
 	}
 }
