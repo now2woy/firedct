@@ -1,4 +1,4 @@
-package ji.hs.firedct.itm.dao;
+package ji.hs.firedct.data.stock.itmtrd.entity;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -21,6 +21,8 @@ import org.hibernate.annotations.DynamicUpdate;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
+import ji.hs.firedct.data.stock.itm.entity.Itm;
+import ji.hs.firedct.data.stock.itmfincsts.entity.ItmFincSts;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -137,6 +139,12 @@ public class ItmTrd implements Serializable {
 	/**
 	 * PSR
 	 */
+	@Column(name = "PCR", nullable = true)
+	private BigDecimal pcr;
+	
+	/**
+	 * PSR
+	 */
 	@Column(name = "PSR", nullable = true)
 	private BigDecimal psr;
 	
@@ -188,10 +196,22 @@ public class ItmTrd implements Serializable {
 	private BigDecimal sumSalAmt;
 	
 	/**
-	 * 매출액 합계 건수
+	 * 합계 매출액 건수
 	 */
 	@Transient
 	private int sumSalAmtCnt;
+	
+	/**
+	 * 합계 영업활동현금흐름
+	 */
+	@Transient
+	private BigDecimal sumOprCsflw;
+	
+	/**
+	 * 합계 영업활동현금흐름 건수
+	 */
+	@Transient
+	private int sumOprCsflwCnt;
 	
 	/**
 	 * 종목명

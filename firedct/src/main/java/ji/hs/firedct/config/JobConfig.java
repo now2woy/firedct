@@ -7,9 +7,6 @@ import org.springframework.batch.core.configuration.annotation.StepBuilderFactor
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 
-import ji.hs.firedct.cd.dao.Cd;
-import ji.hs.firedct.cd.svc.CdService;
-
 /**
  * Job 설정
  * @author now2woy

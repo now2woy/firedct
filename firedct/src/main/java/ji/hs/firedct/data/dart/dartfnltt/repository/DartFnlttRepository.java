@@ -1,8 +1,11 @@
-package ji.hs.firedct.dart.dao;
+package ji.hs.firedct.data.dart.dartfnltt.repository;
 
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import ji.hs.firedct.data.dart.dartfnltt.entity.DartFnltt;
+import ji.hs.firedct.data.dart.dartfnltt.entity.DartFnlttPrimaryKey;
 
 /**
  * DART 임시 재무제표 Repository

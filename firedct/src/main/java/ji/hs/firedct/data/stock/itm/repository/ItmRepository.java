@@ -1,10 +1,12 @@
-package ji.hs.firedct.itm.dao;
+package ji.hs.firedct.data.stock.itm.repository;
 
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import ji.hs.firedct.data.stock.itm.entity.Itm;
 
 /**
  * 종목 Repository

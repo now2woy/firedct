@@ -1,4 +1,4 @@
-package ji.hs.firedct.itm.dao;
+package ji.hs.firedct.data.stock.itm.entity;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -17,6 +17,8 @@ import org.hibernate.annotations.DynamicUpdate;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
+import ji.hs.firedct.data.stock.itmfincsts.entity.ItmFincSts;
+import ji.hs.firedct.data.stock.itmtrd.entity.ItmTrd;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -81,5 +83,4 @@ public class Itm implements Serializable {
 	@OneToMany(mappedBy = "itm")
 	@JsonBackReference
 	private List<ItmFincSts> itmFincStss;
-	
 }

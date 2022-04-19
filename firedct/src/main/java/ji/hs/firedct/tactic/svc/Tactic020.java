@@ -13,13 +13,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import ji.hs.firedct.co.Utils;
-import ji.hs.firedct.itm.dao.ItmFincSts;
-import ji.hs.firedct.itm.dao.ItmFincStsRepository;
-import ji.hs.firedct.itm.dao.ItmTrd;
-import ji.hs.firedct.itm.dao.ItmTrdRepository;
+import ji.hs.firedct.data.stock.itmfincsts.entity.ItmFincSts;
+import ji.hs.firedct.data.stock.itmfincsts.repository.ItmFincStsRepository;
+import ji.hs.firedct.data.stock.itmtrd.entity.ItmTrd;
+import ji.hs.firedct.data.stock.itmtrd.repository.ItmTrdRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -46,14 +44,13 @@ public class Tactic020 {
 		try {
 			log.info("{}일 전략 20 데이터 전송 시작", dt);
 			
-			ObjectMapper mapper = new ObjectMapper();
 			Map<String, Object> param = new HashMap<>();
 			param.put("SHEET_NM", "투자전략20");
 			// 삭제 코드
 			param.put("dmlCd", "D");
 			
 			// DML 코드를 'D'로 넘겨서 투자전략 20 시트를 초기화 한다.
-			tactic000.callMacro(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(param));
+			tactic000.callMacro(Utils.writeValueAsJson(param));
 			
 			param.remove("dmlCd");
 			// 입력 코드
@@ -94,7 +91,7 @@ public class Tactic020 {
 			param.put("data", itmTrds);
 			
 			// 새로운 데이터를 넘긴다.
-			tactic000.callMacro(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(param));
+			tactic000.callMacro(Utils.writeValueAsJson(param));
 			
 			log.info("{}일 전략 20 데이터 전송 종료", dt);
 		}catch(Exception e) {

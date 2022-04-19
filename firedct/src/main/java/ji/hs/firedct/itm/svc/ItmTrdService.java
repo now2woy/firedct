@@ -16,14 +16,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import ji.hs.firedct.cd.dao.Cd;
-import ji.hs.firedct.cd.dao.CdRepository;
 import ji.hs.firedct.co.Utils;
-import ji.hs.firedct.itm.dao.ItmFincSts;
-import ji.hs.firedct.itm.dao.ItmFincStsRepository;
-import ji.hs.firedct.itm.dao.ItmRepository;
-import ji.hs.firedct.itm.dao.ItmTrd;
-import ji.hs.firedct.itm.dao.ItmTrdRepository;
+import ji.hs.firedct.data.stock.cd.entity.Cd;
+import ji.hs.firedct.data.stock.cd.repository.CdRepository;
+import ji.hs.firedct.data.stock.itm.repository.ItmRepository;
+import ji.hs.firedct.data.stock.itmfincsts.entity.ItmFincSts;
+import ji.hs.firedct.data.stock.itmfincsts.repository.ItmFincStsRepository;
+import ji.hs.firedct.data.stock.itmtrd.entity.ItmTrd;
+import ji.hs.firedct.data.stock.itmtrd.repository.ItmTrdRepository;
 import ji.hs.firedct.tactic.svc.Tactic000;
 import ji.hs.firedct.tactic.svc.Tactic020;
 import lombok.extern.slf4j.Slf4j;
@@ -365,7 +365,7 @@ public class ItmTrdService {
 	 */
 	public void createBPSAndPBRAndSPSAndPSR(String dt) {
 		try {
-			log.info("{}일 BPS, PBR 생성 시작", dt);
+			log.info("{}일 BPS, CPS, SPS, PBR, PCR, PSR 생성 시작", dt);
 			
 			List<ItmTrd> itmTrds = itmTrdRepo.findByDt(Utils.dateParse(dt));
 			
@@ -384,35 +384,50 @@ public class ItmTrdService {
 				if(!itmFincStss.isEmpty()) {
 					// 지배 자본이 있을 경우
 					if(itmFincStss.get(0).getOwnCpt() != null && itmFincStss.get(0).getOwnCpt().compareTo(BigDecimal.ZERO) != 0) {
-						// BPS를 만든다.
+						/** BPS = 지배자본 / 발행주식수 */
 						itmTrd.setBps(Utils.divide(itmFincStss.get(0).getOwnCpt(), itmTrd.getTotIsuStkQty(), 2));
 						
 					// 지배자본이 없을 경우 기본 자본이 있는지 확인
 					}else if(itmFincStss.get(0).getBscCpt() != null && itmFincStss.get(0).getBscCpt().compareTo(BigDecimal.ZERO) != 0) {
-						// BPS를 만든다.
+						/** BPS = 자본 / 발행주식수 */
 						itmTrd.setBps(Utils.divide(itmFincStss.get(0).getBscCpt(), itmTrd.getTotIsuStkQty(), 2));
 					}
 					
-					// PBR을 만든다.
+					/** PBR = 종가 / BPS */
 					itmTrd.setPbr(Utils.divide(itmTrd.getEdAmt(), itmTrd.getBps(), 2));
 					
 					// 4개 분기 자료가 조회되었을 경우
 					if(itmFincStss.size() == 4) {
 						itmTrd.setSumSalAmtCnt(0);
+						itmTrd.setSumOprCsflwCnt(0);
 						
 						itmFincStss.stream().forEach(itmFincSts -> {
+							// 매출액을 더한다.
 							itmTrd.setSumSalAmt(Utils.add(itmTrd.getSumSalAmt(), itmFincSts.getSalAmt()));
 							itmTrd.setSumSalAmtCnt(Utils.addCnt(itmTrd.getSumSalAmtCnt(), itmTrd.getSumSalAmt(), itmFincSts.getSalAmt()));
+							
+							// 영업활동현금흐름을 더한다.
+							itmTrd.setSumOprCsflw(Utils.add(itmTrd.getSumOprCsflw(), itmFincSts.getOprCsflw()));
+							itmTrd.setSumOprCsflwCnt(Utils.addCnt(itmTrd.getSumOprCsflwCnt(), itmTrd.getSumOprCsflw(), itmFincSts.getOprCsflw()));
 						});
 						
-						// 합계 횟수가 4번이고, 합계금액이 0이 아닐때
+						// 합계 횟수가 4번일때
 						if(itmTrd.getSumSalAmtCnt() == 4) {
-							// SPS를 생성한다.
+							/** SPS = 4분기 합계매출액 / 발행주식수 */
 							itmTrd.setSps(Utils.divide(itmTrd.getSumSalAmt(), itmTrd.getTotIsuStkQty(), 2));
 						}
 						
-						// PSR을 만든다.
+						/** PSR = 종가 / SPS */
 						itmTrd.setPsr(Utils.divide(itmTrd.getEdAmt(), itmTrd.getSps(), 2));
+						
+						// 합계 횟수가 4번일때
+						if(itmTrd.getSumOprCsflwCnt() == 4) {
+							/** CPS =  4분기 합계영업활동현금흐름 / 발행주식수 */
+							itmTrd.setCps(Utils.divide(itmTrd.getSumOprCsflw(), itmTrd.getTotIsuStkQty(), 2));
+						}
+						
+						/** PCR = 종가 / CPS */
+						itmTrd.setPcr(Utils.divide(itmTrd.getEdAmt(), itmTrd.getCps(), 2));
 					}
 				}
 			});
@@ -420,7 +435,7 @@ public class ItmTrdService {
 			// 이동평균금액을 저장한다.
 			itmTrdRepo.saveAllAndFlush(itmTrds);
 			
-			log.info("{}일 BPS, PBR 생성 종료", dt);
+			log.info("{}일 BPS, CPS, SPS, PBR, PCR, PSR 생성 종료", dt);
 		}catch(Exception e) {
 			log.error("", e);
 		}

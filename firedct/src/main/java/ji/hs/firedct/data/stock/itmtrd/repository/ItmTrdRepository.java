@@ -1,4 +1,4 @@
-package ji.hs.firedct.itm.dao;
+package ji.hs.firedct.data.stock.itmtrd.repository;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -9,6 +9,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import ji.hs.firedct.data.stock.itmtrd.entity.ItmTrd;
+import ji.hs.firedct.data.stock.itmtrd.entity.ItmTrdPrimaryKey;
 
 /**
  * 종목 거래 Repository
@@ -30,6 +33,14 @@ public interface ItmTrdRepository extends JpaRepository<ItmTrd, ItmTrdPrimaryKey
 	 * @return
 	 */
 	public List<ItmTrd> findByDt(Date dt);
+	
+	/**
+	 * 일자에 해당하는 거래정보 조회
+	 * @param dt
+	 * @param sort
+	 * @return
+	 */
+	public List<ItmTrd> findByDt(Date dt, Sort sort);
 	
 	/**
 	 * 일자에 해당하고 종목코드와 유사한 거래 정보 조회
@@ -106,9 +117,6 @@ public interface ItmTrdRepository extends JpaRepository<ItmTrd, ItmTrdPrimaryKey
 	@Query("SELECT DISTINCT t FROM ItmTrd t LEFT JOIN FETCH t.itm i WHERE t.dt = :dt AND i.dartItmCd IS NOT NULL")
 	public List<ItmTrd> findByDtAndDartItmCdIsNull(@Param("dt") Date dt, Pageable page);
 	
-	
-	public List<ItmTrd> findByDt(Date dt, Sort sort);
-	
 	/**
 	 * 365일 최저 PER 조회
 	 * @param itmCd
@@ -162,4 +170,13 @@ public interface ItmTrdRepository extends JpaRepository<ItmTrd, ItmTrdPrimaryKey
 	 */
 	@Query("SELECT MAX(t.edAmt) FROM ItmTrd t WHERE t.itmCd = :itmCd AND dt >= CONVERT(:dt, DATE)  - 365")
 	public BigDecimal findMaxEdAmtByItmCdAndDtGreaterThanEqual365(@Param("itmCd") String itmCd, @Param("dt") Date dt);
+	
+	
+	/**
+	 * 일자에 해당하는 거래정보 조회
+	 * @param dt
+	 * @return
+	 */
+	@Query("SELECT t FROM ItmTrd t WHERE t.dt = :dt AND trdAmt > 0 AND per > 0 AND pcr > 0 AND pbr IS NOT NULL AND pcr IS NOT NULL AND per IS NOT NULL AND psr IS NOT NULL AND pbr >= 0.2")
+	public List<ItmTrd> findByDtQuery(@Param("dt") Date dt, Pageable page);
 }

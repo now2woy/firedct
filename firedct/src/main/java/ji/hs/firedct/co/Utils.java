@@ -78,6 +78,25 @@ public class Utils {
 	}
 	
 	/**
+	 * a - b
+	 * CASE : a가 null 일 경우 null
+	 * CASE : a가 null이 아니고 b가 null 일 경우 a
+	 * 
+	 * @param a
+	 * @param b
+	 * @return
+	 */
+	public static BigDecimal subtract(BigDecimal a, BigDecimal b) {
+		if(a == null) {
+			return null;
+		}
+		if(b == null) {
+			return a;
+		}
+		
+		return a.subtract(b);
+	}
+	/**
 	 * a - b or a - c
 	 * CASE : a가 null일 경우 null
 	 * CASE : a가 null이 아니고 b가 null이 아닐 경우 a - b
@@ -267,6 +286,24 @@ public class Utils {
 		}
 		
 		return map;
+	}
+	
+	/**
+	 * Map을 Json 형식의 String으로 리턴
+	 * @param map
+	 * @return
+	 */
+	public static String writeValueAsJson(Map<String, Object> map) {
+		String result = null;
+		try {
+			ObjectMapper mapper = new ObjectMapper();
+			
+			result = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(map);
+		}catch(Exception e) {
+			log.error("", e);
+		}
+		
+		return result;
 	}
 	
 	/**

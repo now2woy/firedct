@@ -21,15 +21,15 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import ji.hs.firedct.cd.dao.Cd;
-import ji.hs.firedct.cd.dao.CdRepository;
 import ji.hs.firedct.co.Utils;
-import ji.hs.firedct.dart.dao.DartFnltt;
-import ji.hs.firedct.dart.dao.DartFnlttRepository;
-import ji.hs.firedct.itm.dao.Itm;
-import ji.hs.firedct.itm.dao.ItmFincSts;
-import ji.hs.firedct.itm.dao.ItmFincStsRepository;
-import ji.hs.firedct.itm.dao.ItmRepository;
+import ji.hs.firedct.data.dart.dartfnltt.entity.DartFnltt;
+import ji.hs.firedct.data.dart.dartfnltt.repository.DartFnlttRepository;
+import ji.hs.firedct.data.stock.cd.entity.Cd;
+import ji.hs.firedct.data.stock.cd.repository.CdRepository;
+import ji.hs.firedct.data.stock.itm.entity.Itm;
+import ji.hs.firedct.data.stock.itm.repository.ItmRepository;
+import ji.hs.firedct.data.stock.itmfincsts.entity.ItmFincSts;
+import ji.hs.firedct.data.stock.itmfincsts.repository.ItmFincStsRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -238,6 +238,15 @@ public class ItmFincStsService {
 					}
 				}
 			}
+			
+			// 년도가 같고 현재 분기 이전 데이터 조회
+			tmpItmFincStss = itmFincStsRepo.findByItmCdAndYrAndQtLessThan(itmFincSts.getItmCd(), itmFincSts.getYr(), itmFincSts.getQt());
+			
+			// 데이터가 있을 경우 반복
+			tmpItmFincStss.stream().forEach(tmpItmFincSts -> {
+				/** 영업활동현금흐름 =  당기 영업활동현금흐름 - 이전분기 영업활동현금흐름 */
+				itmFincSts.setOprCsflw(Utils.subtract(itmFincSts.getOprCsflw(), tmpItmFincSts.getOprCsflw()));
+			});
 		});
 		
 		itmFincStsRepo.saveAllAndFlush(itmFincStss);

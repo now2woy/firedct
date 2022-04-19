@@ -1,4 +1,4 @@
-package ji.hs.firedct.itm.dao;
+package ji.hs.firedct.data.stock.itmfincsts.entity;
 
 import java.io.Serializable;
 

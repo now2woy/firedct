@@ -1,4 +1,4 @@
-package ji.hs.firedct.dart.dao;
+package ji.hs.firedct.data.dart.dartfnltt.entity;
 
 import java.io.Serializable;
 

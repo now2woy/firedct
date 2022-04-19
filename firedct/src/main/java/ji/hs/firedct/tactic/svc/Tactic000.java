@@ -16,12 +16,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import ji.hs.firedct.itm.dao.Itm;
-import ji.hs.firedct.itm.dao.ItmRepository;
-import ji.hs.firedct.itm.dao.ItmTrd;
-import ji.hs.firedct.itm.dao.ItmTrdRepository;
+import ji.hs.firedct.co.Utils;
+import ji.hs.firedct.data.stock.itm.entity.Itm;
+import ji.hs.firedct.data.stock.itm.repository.ItmRepository;
+import ji.hs.firedct.data.stock.itmtrd.entity.ItmTrd;
+import ji.hs.firedct.data.stock.itmtrd.repository.ItmTrdRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -52,14 +51,12 @@ public class Tactic000 {
 		try {
 			log.info("{}일 데이터 구글 스프레드 시트로 전송 시작", dt);
 			
-			ObjectMapper mapper = new ObjectMapper();
-			
 			Map<String, Object> param = new HashMap<>();
 			param.put("SHEET_NM", "데이터");
 			param.put("dmlCd", "D");
 			
 			// DML 코드를 'D'로 넘겨서 데이터를 초기화 한다.
-			callMacro(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(param));
+			callMacro(Utils.writeValueAsJson(param));
 			
 			param.remove("dmlCd");
 			param.put("dmlCd", "I");
@@ -81,7 +78,7 @@ public class Tactic000 {
 			param.put("data", itmTrds);
 			
 			// 새로운 데이터를 넘긴다.
-			callMacro(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(param));
+			callMacro(Utils.writeValueAsJson(param));
 			
 			log.info("{}일 데이터 구글 스프레드 시트로 전송 종료", dt);
 		}catch(Exception e) {

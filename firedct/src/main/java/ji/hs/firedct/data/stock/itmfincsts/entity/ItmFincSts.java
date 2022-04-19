@@ -1,4 +1,4 @@
-package ji.hs.firedct.itm.dao;
+package ji.hs.firedct.data.stock.itmfincsts.entity;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -20,6 +20,7 @@ import org.hibernate.annotations.DynamicUpdate;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
+import ji.hs.firedct.data.stock.itm.entity.Itm;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;

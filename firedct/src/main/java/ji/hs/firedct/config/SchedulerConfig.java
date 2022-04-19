@@ -15,6 +15,8 @@ import ji.hs.firedct.itm.svc.ItmFincStsService;
 import ji.hs.firedct.itm.svc.ItmService;
 import ji.hs.firedct.itm.svc.ItmTrdService;
 import ji.hs.firedct.pgr.svc.PgrLokService;
+import ji.hs.firedct.tactic.svc.Tactic020;
+import ji.hs.firedct.tactic.svc.Tactic024Service;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -41,6 +43,12 @@ public class SchedulerConfig {
 	@Autowired
 	private PgrLokService pgrLokService;
 	
+	@Autowired
+	private Tactic020 tactic020;
+	
+	@Autowired
+	private Tactic024Service tactic024Service;
+	
 	private boolean isRun = false;
 	
 	/**
@@ -62,37 +70,44 @@ public class SchedulerConfig {
 	/**
 	 * 테스트용 스케쥴
 	 */
-	/*
 	@Scheduled(cron = "* * * * * *")
 	public void test() {
 		try {
 			if(!isRun) {
-				//dartFnlttService.dartCrawling("2021", "1", null);
+				log.info("시작");
+				//itmTrdService.crawling();
+				//dartFnlttService.dartCrawling("2019", "2", null);
+				
+				// Dart 년도 / 분기 재무제표 수집
 				//itmFincStsService.crawling("2021", "4", null, true);
-				//itmTrdService.createPer("20210401");
+				//itmTrdService.createPer("20220415");
 				//itmTrdService.createBpsAndPbr(Utils.dateFormat(dt));
 				//itmTrdService.sendGoogleSheet("20220408");
-				//itmTrdService.tactic20("20220408");
 				
-				Date dt = Utils.dateParse("20210401");
-				boolean isStop = false;
+				tactic020.publishing("20220415");
+				//tactic024Service.publishing("20220415");
 				
-				while(!isStop) {
-					itmTrdService.createBpsAndPbr(Utils.dateFormat(dt));
-					itmTrdService.createPer(Utils.dateFormat(dt));
-					
-					dt = DateUtils.addDays(dt, 1);
-					
-					if("20220412".equals(Utils.dateFormat(dt))) {
-						isStop = true;
-					}
-				}
+				//Date dt = Utils.dateParse("20210401");
+				//boolean isStop = false;
+				//
+				//while(!isStop) {
+				//	itmTrdService.createBPSAndPBRAndSPSAndPSR(Utils.dateFormat(dt));
+				//	itmTrdService.createPer(Utils.dateFormat(dt));
+				//	
+				//	dt = DateUtils.addDays(dt, 1);
+				//	
+				//	if("20220415".equals(Utils.dateFormat(dt))) {
+				//		isStop = true;
+				//	}
+				//}
 				
+				log.info("종료");
 				isRun = true;
 			}
 		} catch (Exception e) {
 			log.error("", e);
 		}
 	}
+	/*
 	*/
 }

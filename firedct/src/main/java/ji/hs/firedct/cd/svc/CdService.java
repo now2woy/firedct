@@ -7,9 +7,9 @@ import javax.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import ji.hs.firedct.cd.dao.Cd;
-import ji.hs.firedct.cd.dao.CdPrimaryKey;
-import ji.hs.firedct.cd.dao.CdRepository;
+import ji.hs.firedct.data.stock.cd.entity.Cd;
+import ji.hs.firedct.data.stock.cd.entity.CdPrimaryKey;
+import ji.hs.firedct.data.stock.cd.repository.CdRepository;
 
 /**
  * 코드 Service

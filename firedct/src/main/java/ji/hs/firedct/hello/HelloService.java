@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import ji.hs.firedct.itm.dao.Itm;
+import ji.hs.firedct.data.stock.itm.entity.Itm;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

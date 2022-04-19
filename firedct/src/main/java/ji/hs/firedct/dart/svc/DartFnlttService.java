@@ -17,11 +17,11 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import ji.hs.firedct.cd.dao.CdRepository;
-import ji.hs.firedct.dart.dao.DartFnltt;
-import ji.hs.firedct.dart.dao.DartFnlttRepository;
-import ji.hs.firedct.itm.dao.Itm;
-import ji.hs.firedct.itm.dao.ItmRepository;
+import ji.hs.firedct.data.dart.dartfnltt.entity.DartFnltt;
+import ji.hs.firedct.data.dart.dartfnltt.repository.DartFnlttRepository;
+import ji.hs.firedct.data.stock.cd.repository.CdRepository;
+import ji.hs.firedct.data.stock.itm.entity.Itm;
+import ji.hs.firedct.data.stock.itm.repository.ItmRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**
