@@ -9,14 +9,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import ji.hs.firedct.batch.dartfnltt.svc.DartFnlttService;
+import ji.hs.firedct.batch.itm.svc.ItmService;
+import ji.hs.firedct.batch.itmfincsts.svc.ItmFincStsService;
+import ji.hs.firedct.batch.itmtrd.svc.ItmTrdService;
+import ji.hs.firedct.batch.tactic.svc.Tactic020Service;
+import ji.hs.firedct.batch.tactic.svc.Tactic024Service;
 import ji.hs.firedct.co.Utils;
-import ji.hs.firedct.dart.svc.DartFnlttService;
-import ji.hs.firedct.itm.svc.ItmFincStsService;
-import ji.hs.firedct.itm.svc.ItmService;
-import ji.hs.firedct.itm.svc.ItmTrdService;
-import ji.hs.firedct.pgr.svc.PgrLokService;
-import ji.hs.firedct.tactic.svc.Tactic020;
-import ji.hs.firedct.tactic.svc.Tactic024Service;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -41,10 +40,7 @@ public class SchedulerConfig {
 	private DartFnlttService dartFnlttService;
 	
 	@Autowired
-	private PgrLokService pgrLokService;
-	
-	@Autowired
-	private Tactic020 tactic020;
+	private Tactic020Service tactic020Service;
 	
 	@Autowired
 	private Tactic024Service tactic024Service;
@@ -70,6 +66,7 @@ public class SchedulerConfig {
 	/**
 	 * 테스트용 스케쥴
 	 */
+	/*
 	@Scheduled(cron = "* * * * * *")
 	public void test() {
 		try {
@@ -84,7 +81,7 @@ public class SchedulerConfig {
 				//itmTrdService.createBpsAndPbr(Utils.dateFormat(dt));
 				//itmTrdService.sendGoogleSheet("20220408");
 				
-				tactic020.publishing("20220415");
+				//tactic020Service.publishing("20220415");
 				//tactic024Service.publishing("20220415");
 				
 				//Date dt = Utils.dateParse("20210401");
@@ -108,6 +105,5 @@ public class SchedulerConfig {
 			log.error("", e);
 		}
 	}
-	/*
 	*/
 }
