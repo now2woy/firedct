@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
 
@@ -264,6 +265,44 @@ public class Utils {
 			final SimpleDateFormat sdf = new SimpleDateFormat(format);
 			
 			return sdf.format(date);
+			
+		}catch(Exception e) {
+			log.error("", e);
+			return null;
+		}
+	}
+	
+	/**
+	 * 올해 값을 가져온다.
+	 * @return
+	 */
+	public static String thisDay() {
+		try {
+			final SimpleDateFormat sdf = new SimpleDateFormat(DEFAULT_DATE_FORMAT);
+			
+			return sdf.format(new Date());
+			
+		}catch(Exception e) {
+			log.error("", e);
+			return null;
+		}
+	}
+	
+	/**
+	 * date에 months를 더한다.
+	 * @param date
+	 * @param months
+	 * @return
+	 */
+	public static String addMonth(Date date, int months) {
+		try {
+			final SimpleDateFormat sdf = new SimpleDateFormat(DEFAULT_DATE_FORMAT);
+			
+			Calendar cal = Calendar.getInstance();
+			cal.setTime(date);
+			cal.add(Calendar.MONTH, months);
+			
+			return sdf.format(cal.getTime());
 			
 		}catch(Exception e) {
 			log.error("", e);

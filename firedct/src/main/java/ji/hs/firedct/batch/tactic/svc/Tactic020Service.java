@@ -1,11 +1,14 @@
 package ji.hs.firedct.batch.tactic.svc;
 
 import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,11 +16,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import ji.hs.firedct.batch.tactic.dao.TacticVO;
 import ji.hs.firedct.co.Utils;
-import ji.hs.firedct.data.stock.itmfincsts.entity.ItmFincSts;
-import ji.hs.firedct.data.stock.itmfincsts.repository.ItmFincStsRepository;
-import ji.hs.firedct.data.stock.itmtrd.entity.ItmTrd;
-import ji.hs.firedct.data.stock.itmtrd.repository.ItmTrdRepository;
+import ji.hs.firedct.data.stock.entity.Itm;
+import ji.hs.firedct.data.stock.entity.ItmFincSts;
+import ji.hs.firedct.data.stock.entity.ItmTrd;
+import ji.hs.firedct.data.stock.repository.ItmFincStsRepository;
+import ji.hs.firedct.data.stock.repository.ItmRepository;
+import ji.hs.firedct.data.stock.repository.ItmTrdRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -28,6 +34,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class Tactic020Service {
+	@Autowired
+	private ItmRepository itmRepo;
+	
 	@Autowired
 	private ItmTrdRepository itmTrdRepo;
 	
@@ -44,58 +53,136 @@ public class Tactic020Service {
 		try {
 			log.info("{}일 전략 20 데이터 전송 시작", dt);
 			
-			Map<String, Object> param = new HashMap<>();
-			param.put("SHEET_NM", "투자전략20");
-			// 삭제 코드
-			param.put("dmlCd", "D");
+			List<TacticVO> tactics = createTacticDataVer001(dt);
 			
-			// DML 코드를 'D'로 넘겨서 투자전략 20 시트를 초기화 한다.
-			tactic000Service.callMacro(Utils.writeValueAsJson(param));
-			
-			param.remove("dmlCd");
-			// 입력 코드
-			param.put("dmlCd", "I");
-			
-			final SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
-			final Date parseDt = format.parse(dt);
-			
-			List<ItmTrd> itmTrds = itmTrdRepo.findByDt(parseDt, Sort.by("pbr").ascending().and(Sort.by("per").ascending().and(Sort.by("mktTotAmt").ascending())));
-			
-			itmTrds.stream().forEach(itmTrd -> {
-				itmTrd.setDtStr(format.format(itmTrd.getDt()));
-				itmTrd.setItmNm(itmTrd.getItm().getItmNm());
-				itmTrd.setMinEdAmt(itmTrdRepo.findMinEdAmtByItmCdAndDtGreaterThanEqual365(itmTrd.getItmCd(), parseDt));
-				itmTrd.setMaxEdAmt(itmTrdRepo.findMaxEdAmtByItmCdAndDtGreaterThanEqual365(itmTrd.getItmCd(), parseDt));
+			if(tactics.isEmpty()) {
+				log.info("조회된 데이터가 없어 구글 스프레드 시트로 데이터 전송 생략");
+			} else {
 				
-				// 매수목표가 생성((365일 최고가 / 150) * 100 = 매수목표가로 구매 후 365일 최고가가 되면 50% 상승)
-				itmTrd.setTgEdAmt(Utils.divide(itmTrd.getMaxEdAmt(), new BigDecimal("150"), 0).multiply(new BigDecimal("100")));
-				List<ItmFincSts> itmFincSts = itmFincStsRepo.findByItmCdAndStdDtLessThanEqual(itmTrd.getItmCd(), parseDt, PageRequest.of(0, 1, Sort.by("stdDt").descending()));
+				// 1번 시트로 데이터 전송
+				Map<String, Object> param = new HashMap<>();
+				param.put("SHEET_NM", "전략20-1");
+				param.put("data", tactics);
+				tactic000Service.callSheet(param, 0);
 				
-				if(!itmFincSts.isEmpty()) {
-					itmTrd.setRoe(itmFincSts.get(0).getRoe());
-					itmTrd.setRoa(itmFincSts.get(0).getRoa());
-					itmTrd.setDebtRt(itmFincSts.get(0).getDebtRt());
-				}
-				
-			});
-			
-			itmTrds = itmTrds.stream()
-					.filter(itmTrd -> itmTrd.getDebtRt() != null)
-					.filter(itmTrd -> itmTrd.getDebtRt().compareTo(new BigDecimal("50")) <= 0)
-					.filter(itmTrd -> itmTrd.getRoa() != null)
-					.filter(itmTrd -> itmTrd.getRoa().compareTo(new BigDecimal("5")) >= 0)
-					.filter(itmTrd -> itmTrd.getPbr() != null)
-					.filter(itmTrd -> itmTrd.getPbr().compareTo(new BigDecimal("0.2")) >= 0)
-					.collect(Collectors.toList());
-			
-			param.put("data", itmTrds);
-			
-			// 새로운 데이터를 넘긴다.
-			tactic000Service.callMacro(Utils.writeValueAsJson(param));
+				// 2번 시트로 데이터 전송
+				param.put("SHEET_NM", "전략20-2");
+				param.put("data", createTacticDataVer002(tactics));
+				tactic000Service.callSheet(param, 0);
+			}
 			
 			log.info("{}일 전략 20 데이터 전송 종료", dt);
 		}catch(Exception e) {
 			log.error("", e);
 		}
+	}
+	
+	/**
+	 * 전략 20의 데이터를 생성한다.
+	 * @param dt
+	 * @return
+	 */
+	public List<TacticVO> createTacticDataVer001(String dt){
+		List<TacticVO> tactics = new ArrayList<>();
+		List<ItmFincSts> dates = itmFincStsRepo.findByStdDtLessThanEqual(Utils.dateParse(dt), PageRequest.of(0, 1, Sort.by("stdDt").descending()));
+		Date stdDt = null;
+		
+		if(!dates.isEmpty()) {
+			stdDt = dates.get(0).getStdDt();
+		}
+		
+		if(stdDt != null) {
+			List<ItmFincSts> itmFincStss = itmFincStsRepo.findByStdDtQuery(stdDt);
+			
+			itmFincStss.stream().forEach(itmFincSts -> {
+				Optional<ItmTrd> itmTrd = itmTrdRepo.findByItmCdAndDt(itmFincSts.getItmCd(), Utils.dateParse(dt));
+				
+				if(itmTrd.isPresent()) {
+					TacticVO tactic = new TacticVO();
+					
+					Optional<Itm> itm = itmRepo.findByItmCd(itmFincSts.getItmCd());
+					
+					tactic.setItmCd(itmFincSts.getItmCd());
+					tactic.setItmNm(itm.get().getItmNm());
+					tactic.setMkt(itm.get().getMkt());
+					tactic.setEdAmt(itmTrd.get().getEdAmt());
+					tactic.setMktTotAmt(itmTrd.get().getMktTotAmt());
+					tactic.setPbr(itmTrd.get().getPbr());
+					tactic.setPcr(itmTrd.get().getPcr());
+					tactic.setPer(itmTrd.get().getPer());
+					tactic.setPsr(itmTrd.get().getPsr());
+					tactic.setDt(dt);
+					tactic.setRoe(itmFincSts.getRoe());
+					tactic.setRoa(itmFincSts.getRoa());
+					tactic.setDebtRt(itmFincSts.getDebtRt());
+					tactic.setFscrFst(itmFincSts.getFscrFst());
+					tactic.setFscrSnd(itmFincSts.getFscrSnd());
+					tactic.setFscrTrd(itmFincSts.getFscrTrd());
+					tactic.setMinEdAmt(itmTrdRepo.findMinEdAmtByItmCdAndDtGreaterThanEqual365(itmFincSts.getItmCd(), Utils.dateParse(dt)));
+					tactic.setMaxEdAmt(itmTrdRepo.findMaxEdAmtByItmCdAndDtGreaterThanEqual365(itmFincSts.getItmCd(), Utils.dateParse(dt)));
+					
+					// 매수목표가 생성((365일 최고가 / 150) * 100 = 매수목표가로 구매 후 365일 최고가가 되면 50% 상승)
+					tactic.setTgEdAmt(Utils.multiply(Utils.divide(tactic.getMaxEdAmt(), new BigDecimal("150"), 0), new BigDecimal("100"), 0));
+					
+					tactics.add(tactic);
+				}
+			});
+		}
+		
+		return filter(tactics);
+	}
+	
+	/**
+	 * PBR, PCR, PER, PSR 순위 합계로 정렬
+	 * @param dt
+	 * @return
+	 */
+	public List<TacticVO> createTacticDataVer002(String dt) {
+		List<TacticVO> tactics = createTacticDataVer001(dt);
+		
+		return createTacticDataVer002(tactics);
+	}
+	
+	/**
+	 * PBR로 필터 후 PBR ASC, ROA DESC, DEBT_RT ASC 로 정렬
+	 * @param tactics
+	 * @return
+	 */
+	private List<TacticVO> filter(List<TacticVO> tactics){
+		var list = tactics.stream()
+				.filter(tactic -> tactic.getPbr() != null && tactic.getPbr().compareTo(new BigDecimal("0.2")) >= 0)
+				.sorted(Comparator.comparing(TacticVO::getPbr).reversed()
+						.thenComparing(TacticVO::getRoa)
+						.thenComparing(TacticVO::getDebtRt).reversed())
+				.collect(Collectors.toList());
+		
+		AtomicInteger i = new AtomicInteger(1);
+		
+		list.stream().forEach(tactic -> {
+			tactic.setSeq(i.getAndIncrement());
+		});
+		
+		return list;
+	}
+	
+	/**
+	 * F-Score 1, 2, 3의 값이 1인것만 추출
+	 * @param tactics
+	 * @return
+	 */
+	private List<TacticVO> createTacticDataVer002(List<TacticVO> tactics){
+		var list = tactics.stream()
+				.filter(tactic -> "1".equals(tactic.getFscrFst()))
+				.filter(tactic -> "1".equals(tactic.getFscrSnd()))
+				.filter(tactic -> "1".equals(tactic.getFscrTrd()))
+				.collect(Collectors.toList());
+		
+		AtomicInteger i = new AtomicInteger(1);
+		
+		list.stream().forEach(tactic -> {
+			tactic.setSeq(i.getAndIncrement());
+		});
+		
+		return list;
 	}
 }

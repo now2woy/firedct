@@ -27,10 +27,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import ji.hs.firedct.co.Utils;
-import ji.hs.firedct.data.stock.cd.entity.Cd;
-import ji.hs.firedct.data.stock.cd.repository.CdRepository;
-import ji.hs.firedct.data.stock.itm.entity.Itm;
-import ji.hs.firedct.data.stock.itm.repository.ItmRepository;
+import ji.hs.firedct.data.stock.entity.Cd;
+import ji.hs.firedct.data.stock.entity.Itm;
+import ji.hs.firedct.data.stock.repository.CdRepository;
+import ji.hs.firedct.data.stock.repository.ItmRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**

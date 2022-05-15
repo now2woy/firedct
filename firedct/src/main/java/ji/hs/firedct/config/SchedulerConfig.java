@@ -1,5 +1,6 @@
 package ji.hs.firedct.config;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -9,12 +10,19 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
-import ji.hs.firedct.batch.dartfnltt.svc.DartFnlttService;
+import ji.hs.firedct.batch.backtest.svc.BackTest020Service;
+import ji.hs.firedct.batch.dart.svc.DartFnlttService;
+import ji.hs.firedct.batch.dart.svc.DartNoticeService;
+import ji.hs.firedct.batch.itm.svc.ItmFincStsService;
+import ji.hs.firedct.batch.itm.svc.ItmPiciService;
 import ji.hs.firedct.batch.itm.svc.ItmService;
-import ji.hs.firedct.batch.itmfincsts.svc.ItmFincStsService;
-import ji.hs.firedct.batch.itmtrd.svc.ItmTrdService;
+import ji.hs.firedct.batch.itm.svc.ItmTrdService;
+import ji.hs.firedct.batch.tactic.svc.Tactic000Service;
 import ji.hs.firedct.batch.tactic.svc.Tactic020Service;
 import ji.hs.firedct.batch.tactic.svc.Tactic024Service;
+import ji.hs.firedct.batch.tactic.svc.Tactic030Service;
+import ji.hs.firedct.batch.tactic.svc.Tactic901Service;
+import ji.hs.firedct.batch.tactic.svc.TacticService;
 import ji.hs.firedct.co.Utils;
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,10 +48,16 @@ public class SchedulerConfig {
 	private DartFnlttService dartFnlttService;
 	
 	@Autowired
-	private Tactic020Service tactic020Service;
+	private TacticService tacticService;
 	
 	@Autowired
-	private Tactic024Service tactic024Service;
+	private BackTest020Service backTest020Service;
+	
+	@Autowired
+	private DartNoticeService dartNoticeService;
+	
+	@Autowired
+	private ItmPiciService itmPiciService;
 	
 	private boolean isRun = false;
 	
@@ -66,23 +80,36 @@ public class SchedulerConfig {
 	/**
 	 * 테스트용 스케쥴
 	 */
-	/*
 	@Scheduled(cron = "* * * * * *")
 	public void test() {
 		try {
 			if(!isRun) {
 				log.info("시작");
 				//itmTrdService.crawling();
-				//dartFnlttService.dartCrawling("2019", "2", null);
+				//dartFnlttService.dartCrawling("2018", "2", null);
 				
 				// Dart 년도 / 분기 재무제표 수집
 				//itmFincStsService.crawling("2021", "4", null, true);
+				// 재무제표에 계산해야 하는 값들만 계산
+				//itmFincStsService.calc("2021", "4", null);
 				//itmTrdService.createPer("20220415");
 				//itmTrdService.createBpsAndPbr(Utils.dateFormat(dt));
 				//itmTrdService.sendGoogleSheet("20220408");
 				
-				//tactic020Service.publishing("20220415");
-				//tactic024Service.publishing("20220415");
+				// 거래정보를 수집
+				//itmTrdService.crawling();
+				
+				// DART 사이트에서 공시정보를 수집
+				//dartNoticeService.crawling("20180101", "20200101");
+				
+				// 유상증자 정보를 수집
+				//itmPiciService.crawling();
+				
+				// 전략 자료를 액셀로 전송
+				//tacticService.publishing("20220513");
+				
+				// 백테스트 결과를 액셀로 전송
+				//backTest020Service.publishing("30-1", "20210401", 3, "00001", new BigDecimal("2000000"), new BigDecimal("20"), new BigDecimal("0"), new BigDecimal("0.23"));
 				
 				//Date dt = Utils.dateParse("20210401");
 				//boolean isStop = false;
@@ -105,5 +132,6 @@ public class SchedulerConfig {
 			log.error("", e);
 		}
 	}
+	/*
 	*/
 }

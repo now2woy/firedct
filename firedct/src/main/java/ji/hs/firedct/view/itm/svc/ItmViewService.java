@@ -8,9 +8,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import ji.hs.firedct.data.stock.itmfincsts.repository.ItmFincStsRepository;
-import ji.hs.firedct.data.stock.itmtrd.entity.ItmTrd;
-import ji.hs.firedct.data.stock.itmtrd.repository.ItmTrdRepository;
+import ji.hs.firedct.data.stock.entity.ItmTrd;
+import ji.hs.firedct.data.stock.repository.ItmFincStsRepository;
+import ji.hs.firedct.data.stock.repository.ItmTrdRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**

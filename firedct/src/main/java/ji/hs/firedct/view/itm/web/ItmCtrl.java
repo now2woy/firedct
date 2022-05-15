@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import ji.hs.firedct.data.stock.itmtrd.entity.ItmTrd;
+import ji.hs.firedct.data.stock.entity.ItmTrd;
 import ji.hs.firedct.view.itm.svc.ItmViewService;
 
 @RestController
