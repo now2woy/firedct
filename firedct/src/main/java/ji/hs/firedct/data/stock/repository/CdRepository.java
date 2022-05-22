@@ -31,7 +31,7 @@ public interface CdRepository extends JpaRepository<Cd, CdPrimaryKey> {
 	public Cd findByClsAndCd(String cls, String cd);
 	
 	/**
-	 * 
+	 * 코드로 코드명 조회
 	 * @param cls
 	 * @param cd
 	 * @return
@@ -39,6 +39,21 @@ public interface CdRepository extends JpaRepository<Cd, CdPrimaryKey> {
 	@Query("SELECT c.cdNm FROM Cd c WHERE c.cls = :cls AND c.cd = :cd")
 	public String findCdNmByClsAndCd(@Param("cls") String cls, @Param("cd") String cd);
 	
+	/**
+	 * 코드명으로 코드 조회
+	 * @param cls
+	 * @param cdNm
+	 * @return
+	 */
+	@Query("SELECT c.cd FROM Cd c WHERE c.cls = :cls AND c.cdNm = :cdNm")
+	public String findCdByClsAndCdNm(@Param("cls") String cls, @Param("cdNm") String cdNm);
+	
+	/**
+	 * 코드보조명으로 코드 조회
+	 * @param cls
+	 * @param cdSubNm
+	 * @return
+	 */
 	@Query("SELECT c.cd FROM Cd c WHERE c.cls = :cls AND c.cdSubNm = :cdSubNm")
 	public String findCdByClsAndCdSubNm(@Param("cls") String cls, @Param("cdSubNm") String cdSubNm);
 }

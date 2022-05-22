@@ -18,17 +18,16 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import ji.hs.firedct.batch.pgr.svc.PgrExecTgService;
 import ji.hs.firedct.batch.tactic.svc.TacticService;
 import ji.hs.firedct.co.Utils;
 import ji.hs.firedct.data.stock.entity.Cd;
 import ji.hs.firedct.data.stock.entity.ItmFincSts;
 import ji.hs.firedct.data.stock.entity.ItmTrd;
-import ji.hs.firedct.data.stock.entity.PgrExecTg;
 import ji.hs.firedct.data.stock.repository.CdRepository;
 import ji.hs.firedct.data.stock.repository.ItmFincStsRepository;
 import ji.hs.firedct.data.stock.repository.ItmRepository;
 import ji.hs.firedct.data.stock.repository.ItmTrdRepository;
-import ji.hs.firedct.data.stock.repository.PgrExecTgRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -52,16 +51,21 @@ public class ItmTrdService {
 	private ItmFincStsRepository itmFincStsRepo;
 	
 	@Autowired
-	private PgrExecTgRepository pgrExecTgRepo;
+	private TacticService tacticService;
 	
 	@Autowired
-	private TacticService tacticService;
+	private PgrExecTgService pgrExecTgService;
 	
 	/**
 	 * 거래소에서 JSON 데이터를 가져오는 URL
 	 */
 	@Value("${constant.url.krxJson}")
 	private String krxJsonUrl;
+	
+	/**
+	 * 종목 거래 수집 프로그램 코드
+	 */
+	private static final String PGR_CD = "00002";
 	
 	/**
 	 * S
@@ -71,19 +75,17 @@ public class ItmTrdService {
 	 */
 	public void crawling() {
 		try {
-			final List<String> dtLst = findMaxDtByItmCd();
+			// 프로그램 실행 대상 일자 목록 조회
+			final List<String> dts = pgrExecTgService.findMaxDtByItmCd(PGR_CD);
 			
-			dtLst.stream().forEach(dt -> {
+			dts.stream().forEach(dt -> {
 				itmTrdCrawlingByDt(dt);
 				createPer(dt);
 				createBPSAndPBRAndSPSAndPSR(dt);
-				tacticService.publishing(dt);
+				tacticService.publishing(dt, null);
 				
 				// 오류 없이 처리될 경우 날자 업데이트
-				PgrExecTg pgrExecTg = new PgrExecTg();
-				pgrExecTg.setPgrCd("00002");
-				pgrExecTg.setParam01(dt);
-				pgrExecTgRepo.save(pgrExecTg);
+				pgrExecTgService.savePgrExecTg(PGR_CD, dt, null, null, null, null);
 			});
 		}catch(Exception e) {
 			log.error("", e);
@@ -241,42 +243,6 @@ public class ItmTrdService {
 			
 			log.info("{}일 {} 수집 종료", dt, mkt.getCd());
 		});
-	}
-	
-	/**
-	 * 최종거래일자부터 현재일자까지 List
-	 * 
-	 * @param format
-	 * @param itmCd
-	 * @return
-	 */
-	private List<String> findMaxDtByItmCd() throws Exception {
-		final List<String> dateLst = new ArrayList<>();
-		final int currDate = Integer.parseInt(Utils.dateFormat(new Date()));
-		
-		PgrExecTg pgrExecTgs = pgrExecTgRepo.findByPgrCd("00002");
-		
-		Date lastCrawlingdate = null;
-		
-		// 조회된 데이터가 없을 경우 2007년 1월 2일 부터 수집
-		if(pgrExecTgs == null) {
-			lastCrawlingdate = Utils.dateParse("20070102");
-			
-		// 최종거래일이 있을 경우 사용
-		}else {
-			lastCrawlingdate = Utils.dateParse(pgrExecTgs.getParam01());
-		}
-		
-		// 현재 일자보다 최종거래일이 작을 경우
-		while(currDate > Integer.parseInt(Utils.dateFormat(lastCrawlingdate))) {
-			// 최종거래일 + 1 하여 목록에 담는다.
-			lastCrawlingdate = DateUtils.addDays(lastCrawlingdate, 1);
-			dateLst.add(Utils.dateFormat(lastCrawlingdate));
-			
-			log.info("{}", Utils.dateFormat(lastCrawlingdate));
-		}
-		
-		return dateLst;
 	}
 	
 	/**

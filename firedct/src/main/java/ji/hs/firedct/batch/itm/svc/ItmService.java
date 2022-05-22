@@ -119,7 +119,94 @@ public class ItmService {
 		
 		itmRepo.saveAllAndFlush(itmLst);
 		
+		// 스팩여부를 생성
+		spacYn();
+		
+		// 업종구분 생성
+		indCls();
+		
 		log.info("{}건 ITM 처리 완료", itmLst.size());
+	}
+	
+	/**
+	 * 스팩여부 생성
+	 */
+	private void spacYn() {
+		final List<Itm> itms = new ArrayList<>();
+		
+		try {
+			Document doc = Jsoup.connect(krxJsonUrl)
+					.data("bld", "dbms/MDC/STAT/standard/MDCSTAT03402")
+					.data("mktTpCd", "0")
+					.data("isuSrtCd2", "ALL")
+					.get();
+			
+			Map<String, Object> map = new HashMap<>();
+			map = Utils.jsonParse(doc.text());
+			
+			List<Map<String, String>> blocks = (ArrayList<Map<String, String>>)map.get("block1");
+			
+			blocks.stream().forEach(block -> {
+				if("SPAC(소속부없음)".equals(block.get("SECT_TP_NM"))) {
+					Optional<Itm> itm = itmRepo.findByItmCd(block.get("REP_ISU_SRT_CD"));
+					
+					// 조회된 결과가 있을 경우
+					if(itm.isPresent()) {
+						itm.get().setSpacYn("Y");
+						itms.add(itm.get());
+					}
+				}
+			});
+			
+			itmRepo.saveAllAndFlush(itms);
+			
+		}catch(Exception e) {
+			log.error("", e);
+		}
+	}
+	
+	/**
+	 * 업종구분 생성
+	 */
+	private void indCls() {
+		// 시장 코드 조회
+		final List<Cd> mktLst = cdRepo.findByCls("00001");
+		// 종목정보를 담을 List 생성
+		final List<Itm> itms = new ArrayList<>();
+		
+		mktLst.stream().forEach(mkt -> {
+			try {
+				log.info("{} 수집 시작", mkt.getCd());
+				
+				Document doc = Jsoup.connect(krxJsonUrl)
+								.data("bld", "dbms/MDC/STAT/standard/MDCSTAT03901")
+								.data("mktId", mkt.getCd())
+								.data("trdDd", Utils.thisDay())
+								.get();
+				
+				Map<String, Object> map = new HashMap<>();
+				map = Utils.jsonParse(doc.text());
+				
+				List<Map<String, String>> blocks = (ArrayList<Map<String, String>>)map.get("block1");
+				
+				blocks.stream().forEach(block -> {
+					Optional<Itm> itm = itmRepo.findByItmCd(block.get("ISU_SRT_CD"));
+					
+					// 조회된 결과가 있을 경우
+					if(itm.isPresent()) {
+						itm.get().setIndCls(block.get("IDX_IND_NM"));
+						itms.add(itm.get());
+					}
+				});
+				
+				log.info("{} 수집 종료", mkt.getCd());
+				
+			} catch (IOException e) {
+				log.error("", e);
+			}
+		});
+		
+		itmRepo.saveAllAndFlush(itms);
 	}
 	
 	/**
@@ -189,6 +276,8 @@ public class ItmService {
 								itm.setMkt(tmp.get().getMkt());
 								itm.setPubDt(tmp.get().getPubDt());
 								itm.setStdItmCd(tmp.get().getStdItmCd());
+								itm.setSpacYn(tmp.get().getSpacYn());
+								itm.setIndCls(tmp.get().getIndCls());
 								
 								itmLst.add(itm);
 							}

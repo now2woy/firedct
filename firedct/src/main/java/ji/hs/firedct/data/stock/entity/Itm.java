@@ -74,6 +74,18 @@ public class Itm implements Serializable {
 	@Temporal(TemporalType.DATE)
 	private Date pubDt;
 	
+	/**
+	 * 스팩여부
+	 */
+	@Column(name = "SPAC_YN", length = 1, nullable = true)
+	private String spacYn;
+	
+	/**
+	 * 업종구분
+	 */
+	@Column(name = "IND_CLS", nullable = true)
+	private String indCls;
+	
 	@OneToMany(mappedBy = "itm")
 	@JsonBackReference
 	private List<ItmTrd> itmTrds;

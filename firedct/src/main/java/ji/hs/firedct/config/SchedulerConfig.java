@@ -17,6 +17,7 @@ import ji.hs.firedct.batch.itm.svc.ItmFincStsService;
 import ji.hs.firedct.batch.itm.svc.ItmPiciService;
 import ji.hs.firedct.batch.itm.svc.ItmService;
 import ji.hs.firedct.batch.itm.svc.ItmTrdService;
+import ji.hs.firedct.batch.mkt.svc.MktTrdService;
 import ji.hs.firedct.batch.tactic.svc.Tactic000Service;
 import ji.hs.firedct.batch.tactic.svc.Tactic020Service;
 import ji.hs.firedct.batch.tactic.svc.Tactic024Service;
@@ -59,6 +60,9 @@ public class SchedulerConfig {
 	@Autowired
 	private ItmPiciService itmPiciService;
 	
+	@Autowired
+	private MktTrdService mktTrdService;
+	
 	private boolean isRun = false;
 	
 	/**
@@ -68,13 +72,13 @@ public class SchedulerConfig {
 	@Scheduled(cron = "0 0 20 * * *")
 	public void crawling() {
 		// KRX 종목 기본 정보 수집
-		itmService.crawling();
+		//itmService.crawling();
 		
 		// DART 종목코드 수집
-		itmService.dartCoprCdFileDownload();
+		//itmService.dartCoprCdFileDownload();
 		
 		// 최종수집일 + 1부터 현재일까지 KRX 일자별 종목 시세 수집
-		itmTrdService.crawling();
+		//itmTrdService.crawling();
 	}
 	
 	/**
@@ -85,31 +89,43 @@ public class SchedulerConfig {
 		try {
 			if(!isRun) {
 				log.info("시작");
-				//itmTrdService.crawling();
-				//dartFnlttService.dartCrawling("2018", "2", null);
 				
-				// Dart 년도 / 분기 재무제표 수집
-				//itmFincStsService.crawling("2021", "4", null, true);
 				// 재무제표에 계산해야 하는 값들만 계산
 				//itmFincStsService.calc("2021", "4", null);
 				//itmTrdService.createPer("20220415");
 				//itmTrdService.createBpsAndPbr(Utils.dateFormat(dt));
 				//itmTrdService.sendGoogleSheet("20220408");
 				
+				// KRX 종목 기본 정보 수집
+				//itmService.crawling();
+				
+				// DART 종목코드 수집
+				//itmService.dartCoprCdFileDownload();
+				
 				// 거래정보를 수집
 				//itmTrdService.crawling();
 				
+				// DART 회계정보 수집
+				//dartFnlttService.dartCrawling("2022", "1", null);
+				
 				// DART 사이트에서 공시정보를 수집
-				//dartNoticeService.crawling("20180101", "20200101");
+				//dartNoticeService.crawling("20220501", "20220518");
 				
 				// 유상증자 정보를 수집
 				//itmPiciService.crawling();
 				
+				// 시장 거래 정보 수집
+				mktTrdService.crawling();
+				
+				// Dart 년도 / 분기 재무제표 수집
+				//itmFincStsService.crawling("2019", "1", null, true);
+				
 				// 전략 자료를 액셀로 전송
-				//tacticService.publishing("20220513");
+				//tacticService.publishing("20220517", null);
 				
 				// 백테스트 결과를 액셀로 전송
 				//backTest020Service.publishing("30-1", "20210401", 3, "00001", new BigDecimal("2000000"), new BigDecimal("20"), new BigDecimal("0"), new BigDecimal("0.23"));
+				//backTest020Service.publishing("30-1", "20210401", new BigDecimal("1.01"), new BigDecimal("1.12"), "00001", new BigDecimal("2000000"), new BigDecimal("20"), new BigDecimal("0"), new BigDecimal("0.23"));
 				
 				//Date dt = Utils.dateParse("20210401");
 				//boolean isStop = false;

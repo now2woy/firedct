@@ -29,11 +29,28 @@ public class TacticService {
 	 * 모든 전략을 액셀로 전송한다.
 	 * @param dt
 	 */
-	public void publishing(String dt) {
-		tactic000Service.publishing(dt);
-		tactic020Service.publishing(dt);
-		tactic024Service.publishing(dt);
-		tactic030Service.publishing(dt);
-		//tactic901Service.publishing(dt);
+	public void publishing(String dt, String flag) {
+		if(flag == null) {
+			tactic000Service.publishing(dt);
+			tactic020Service.publishing(dt);
+			tactic024Service.publishing(dt);
+			tactic030Service.publishing(dt);
+			//tactic901Service.publishing(dt);
+			
+		} else if("000".equals(flag)) {
+			tactic000Service.publishing(dt);
+			
+		} else if("020".equals(flag)) {
+			tactic020Service.publishing(dt);
+			
+		} else if("024".equals(flag)) {
+			tactic024Service.publishing(dt);
+			
+		} else if("030".equals(flag)) {
+			tactic030Service.publishing(dt);
+			
+		} else if("901".equals(flag)) {
+			tactic901Service.publishing(dt);
+		}
 	}
 }

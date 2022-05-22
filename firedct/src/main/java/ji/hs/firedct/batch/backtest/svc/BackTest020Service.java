@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import ji.hs.firedct.batch.backtest.dao.BackTestStsVO;
@@ -24,8 +25,10 @@ import ji.hs.firedct.batch.tactic.svc.Tactic024Service;
 import ji.hs.firedct.batch.tactic.svc.Tactic030Service;
 import ji.hs.firedct.co.Utils;
 import ji.hs.firedct.data.stock.entity.ItmTrd;
+import ji.hs.firedct.data.stock.entity.MktTrd;
 import ji.hs.firedct.data.stock.repository.ItmFincStsRepository;
 import ji.hs.firedct.data.stock.repository.ItmTrdRepository;
+import ji.hs.firedct.data.stock.repository.MktTrdRepository;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -41,6 +44,9 @@ public class BackTest020Service {
 	
 	@Autowired
 	private ItmFincStsRepository itmFincStsRepo;
+	
+	@Autowired
+	private MktTrdRepository mktTrdRepo;
 	
 	@Autowired
 	private Tactic000Service tactic000Service;
@@ -61,7 +67,7 @@ public class BackTest020Service {
 		try {
 			log.info("{}일부터 {}단위 백테스트 시작", stDt, term);
 			
-			createData(tacticCd, stDt, term, cd, dpsAmt, itmQty, fee, tax);
+			createData(getDates(stDt, term), tacticCd, cd, dpsAmt, itmQty, fee, tax);
 			
 			log.info("{}일부터 {}단위 백테스트 종료", stDt, term);
 		}catch(Exception e) {
@@ -70,14 +76,32 @@ public class BackTest020Service {
 	}
 	
 	/**
-	 * 
-	 * @param yr
-	 * @param qt
-	 * @param cd
+	 * 구글 스프레드 시트로 출력한다.
 	 */
-	public void createData(String tacticCd, String stDt, int term, String cd, BigDecimal dpsAmt, BigDecimal itmQty, BigDecimal fee, BigDecimal tax) {
+	public void publishing(String tacticCd, String stDt, BigDecimal minPbr, BigDecimal maxPbr, String cd, BigDecimal dpsAmt, BigDecimal itmQty, BigDecimal fee, BigDecimal tax) {
+		try {
+			log.info("{}일부터 최소PBR : {}, 최대PBR : {} 백테스트 시작", stDt, minPbr, maxPbr);
+			
+			createData(getDates(stDt, minPbr, maxPbr), tacticCd, cd, dpsAmt, itmQty, fee, tax);
+			
+			log.info("{}일부터 최소PBR : {}, 최대PBR : {} 백테스트 종료", stDt, minPbr, maxPbr);
+		}catch(Exception e) {
+			log.error("", e);
+		}
+	}
+	
+	/**
+	 * 백 테스트 데이터 생성하여 액셀로 출력한다.
+	 * @param backTestStss
+	 * @param tacticCd
+	 * @param cd
+	 * @param dpsAmt
+	 * @param itmQty
+	 * @param fee
+	 * @param tax
+	 */
+	private void createData(final List<BackTestStsVO> backTestStss, final String tacticCd, final String cd, final BigDecimal dpsAmt, final BigDecimal itmQty, final BigDecimal fee, final BigDecimal tax) {
 		List<BackTestTrdVO> backTestTrds = new ArrayList<>();
-		List<BackTestStsVO> backTestStss = getDateList(stDt, term);
 		
 		Map<String, BigDecimal> data = new HashMap<>();
 		data.put("FWD_AMT", BigDecimal.ZERO);
@@ -194,13 +218,12 @@ public class BackTest020Service {
 	}
 	
 	/**
-	 * 분기 단위로 데이터를 가져올 수 있게 날자 목록을 가져온다.
-	 * @param yr
-	 * @param qt
-	 * @param cd
+	 * 백테스트 할 날자를 가져온다.
+	 * @param dt
+	 * @param term
 	 * @return
 	 */
-	public List<BackTestStsVO> getDateList(final String dt, final int term){
+	private List<BackTestStsVO> getDates(final String dt, final int term){
 		List<BackTestStsVO> results = new ArrayList<>();
 		// 현재일을 가져온다.
 		String thisDay = Utils.thisDay();
@@ -230,6 +253,41 @@ public class BackTest020Service {
 					backTestStsVO.setSellDt(Utils.dateFormat(edDt));
 					
 					results.add(backTestStsVO);
+				}
+			}
+		}
+		
+		return results;
+	}
+	
+	/**
+	 * 
+	 * @param dt
+	 * @param minPbr
+	 * @param maxPbr
+	 * @return
+	 */
+	private List<BackTestStsVO> getDates(final String dt, final BigDecimal minPbr, final BigDecimal maxPbr){
+		List<BackTestStsVO> results = new ArrayList<>();
+		
+		List<MktTrd> mktTrds = mktTrdRepo.findByMktCdAndDtGreaterThanEqual("00001", Utils.dateParse(dt), Sort.by("dt").ascending());
+		
+		BackTestStsVO backTestStsVO = new BackTestStsVO();
+		
+		
+		for(MktTrd mktTrd : mktTrds) {
+			// 최저PBR과 같거나 작을 경우
+			if(mktTrd.getPbr().compareTo(minPbr) <= 0) {
+				if(backTestStsVO.getBuyDt() == null) {
+					backTestStsVO.setBuyDt(Utils.dateFormat(mktTrd.getDt()));
+				}
+				
+			// 최대PBR과 같거나 클 경우
+			} else if(mktTrd.getPbr().compareTo(maxPbr) >= 0) {
+				if(backTestStsVO.getBuyDt() != null) {
+					backTestStsVO.setSellDt(Utils.dateFormat(mktTrd.getDt()));
+					results.add(backTestStsVO);
+					backTestStsVO = new BackTestStsVO();
 				}
 			}
 		}

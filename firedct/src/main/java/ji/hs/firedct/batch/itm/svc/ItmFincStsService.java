@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import ji.hs.firedct.batch.calc.DebtRtCalc;
 import ji.hs.firedct.batch.calc.FscrFstCalc;
 import ji.hs.firedct.batch.calc.FscrSndCalc;
 import ji.hs.firedct.batch.calc.FscrTrdCalc;
@@ -152,23 +153,6 @@ public class ItmFincStsService {
 		}
 		
 		itmFincStss.stream().forEach(itmFincSts -> {
-			// 자본 또는 지배자본과 부채가 있을 경우
-			if((itmFincSts.getBscCpt() != null || itmFincSts.getOwnCpt() != null) && itmFincSts.getDebtAmt() != null) {
-				// 부채가 0이 아닐 경우
-				if(itmFincSts.getDebtAmt().compareTo(BigDecimal.ZERO) != 0) {
-					// 자본이 0이 아닐 경우
-					if(itmFincSts.getBscCpt() != null && itmFincSts.getBscCpt().compareTo(BigDecimal.ZERO) != 0) {
-						/** 부채비율 = 부채총계 / 자본 * 100 */
-						itmFincSts.setDebtRt(Utils.multiply(Utils.divide(itmFincSts.getDebtAmt(), itmFincSts.getBscCpt(), 10), new BigDecimal("100"), 2));
-						
-					// 지배자본이 0이 아닐 경우
-					} else if(itmFincSts.getOwnCpt() != null && itmFincSts.getOwnCpt().compareTo(BigDecimal.ZERO) != 0) {
-						/** 부채비율 = 부채총계 / 지배자본 * 100 */
-						itmFincSts.setDebtRt(Utils.multiply(Utils.divide(itmFincSts.getDebtAmt(), itmFincSts.getOwnCpt(), 10), new BigDecimal("100"), 2));
-					}
-				}
-			}
-			
 			// TODO 요기 일단 처리 안됨
 			// 당기순이익이 없고 법인세비용차감전순이익과 법인세비용이 있을 경우 계산한다.
 			if(itmFincSts.getTsNetIncmAmt() == null && StringUtils.isNotEmpty(itmFincSts.getTemp1()) && StringUtils.isNotEmpty(itmFincSts.getTemp2())){
@@ -193,6 +177,7 @@ public class ItmFincStsService {
 		
 		itmFincStsRepo.saveAllAndFlush(itmFincStss);
 		
+		// 커밋을 하고 계산해야 됨
 		calc(itmFincStss, stdDt);
 		
 		log.info("{}년도 {}분기 재무제표 수집 종료", yr, qt);
@@ -232,6 +217,9 @@ public class ItmFincStsService {
 	private void calc(List<ItmFincSts> itmFincStss, Date stdDt) {
 		itmFincStss.stream().forEach(itmFincSts -> {
 			List<ItmFincSts> calcValues = itmFincStsRepo.findByItmCdAndStdDtLessThanEqual(itmFincSts.getItmCd(), stdDt, PageRequest.of(0, 4, Sort.by("stdDt").descending()));
+			
+			// 부채비율 계산
+			itmFincSts.setDebtRt(DebtRtCalc.calc(itmFincSts.getBscCpt(), itmFincSts.getOwnCpt(), itmFincSts.getDebtAmt()));
 			
 			// ROE 계산
 			itmFincSts.setRoe(RoeCalc.calc(calcValues, itmFincSts.getOwnCpt(), itmFincSts.getBscCpt()));
